@@ -1,5 +1,4 @@
 from django.contrib import admin, messages as django_messages
-
 from .models import Customer, LineItem, Message, RepairOrder, Vehicle
 from .sms import send_sms
 
@@ -30,6 +29,7 @@ class CustomerAdmin(admin.ModelAdmin):
     list_display = ("last_name", "first_name", "phone", "sms_opt_out")
     search_fields = ("first_name", "last_name", "phone")
     inlines = [VehicleInline]
+    actions = [send_test_text]
 
 
 @admin.register(Vehicle)
