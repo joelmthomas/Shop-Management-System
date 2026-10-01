@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,13 +34,14 @@ SITE_URL = os.environ.get("SITE_URL") or (
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'core'
+    "unfold",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "core",
 ]
 
 MIDDLEWARE = [
@@ -155,3 +157,64 @@ if R2_BUCKET_NAME:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
+
+UNFOLD = {
+    "SITE_TITLE": "Phillips Auto Care",
+    "SITE_HEADER": "Phillips Auto Care",
+    "SITE_SYMBOL": "car_repair",
+    "BORDER_RADIUS": "10px",
+    "COLORS": {
+        "primary": {
+            "50": "oklch(97% 0.014 254.604)",
+            "100": "oklch(93.2% 0.032 255.585)",
+            "200": "oklch(88.2% 0.059 254.128)",
+            "300": "oklch(80.9% 0.105 251.813)",
+            "400": "oklch(70.7% 0.165 254.624)",
+            "500": "oklch(62.3% 0.214 259.815)",
+            "600": "oklch(54.6% 0.245 262.881)",
+            "700": "oklch(48.8% 0.243 264.376)",
+            "800": "oklch(42.4% 0.199 265.638)",
+            "900": "oklch(37.9% 0.146 265.522)",
+            "950": "oklch(28.2% 0.091 267.935)",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Shop",
+                "separator": True,
+                "items": [
+                    {"title": "Repair orders", "icon": "build",
+                     "link": reverse_lazy("admin:core_repairorder_changelist")},
+                    {"title": "Customers", "icon": "group",
+                     "link": reverse_lazy("admin:core_customer_changelist")},
+                    {"title": "Vehicles", "icon": "directions_car",
+                     "link": reverse_lazy("admin:core_vehicle_changelist")},
+                ],
+            },
+            {
+                "title": "Parts",
+                "separator": True,
+                "items": [
+                    {"title": "Inventory", "icon": "inventory_2",
+                     "link": reverse_lazy("admin:core_part_changelist"),
+                     "badge": "core.unfold_callbacks.low_stock_badge"},
+                ],
+            },
+            {
+                "title": "Tools",
+                "separator": True,
+                "items": [
+                    {"title": "Scan a VIN", "icon": "photo_camera",
+                     "link": reverse_lazy("scan_vin")},
+                    {"title": "Text messages", "icon": "sms",
+                     "link": reverse_lazy("admin:core_message_changelist")},
+                    {"title": "Staff logins", "icon": "manage_accounts",
+                     "link": reverse_lazy("admin:auth_user_changelist")},
+                ],
+            },
+        ],
+    },
+}

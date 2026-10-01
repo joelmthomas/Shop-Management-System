@@ -4,6 +4,7 @@ from django.contrib import messages as django_messages
 from django.db.models import F
 from django.urls import reverse
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import (
     Attachment, Customer, LineItem, Message, Part, RepairOrder,
@@ -24,13 +25,13 @@ def send_test_text(modeladmin, request, queryset):
             )
 
 
-class VehicleInline(admin.TabularInline):
+class VehicleInline(TabularInline):
     model = Vehicle
     extra = 0
 
 
 @admin.register(Customer)
-class CustomerAdmin(admin.ModelAdmin):
+class CustomerAdmin(ModelAdmin):
     list_display = ("last_name", "first_name", "phone", "sms_opt_out")
     search_fields = ("first_name", "last_name", "phone")
     inlines = [VehicleInline]
@@ -42,11 +43,11 @@ class CustomerAdmin(admin.ModelAdmin):
         if not obj.pk:
             return "Save the customer first"
         url = f"{reverse('scan_vin')}?customer={obj.pk}"
-        return format_html('<a class="button" href="{}">Scan a VIN</a>', url)
+        return format_html('<a style="display:inline-block;padding:8px 14px;border-radius:8px;background:#1a56db;color:#fff;font-weight:600;text-decoration:none" href="{}">Scan a VIN</a>', url)
 
 
 @admin.register(Vehicle)
-class VehicleAdmin(admin.ModelAdmin):
+class VehicleAdmin(ModelAdmin):
     list_display = ("__str__", "customer", "vin", "license_plate")
     search_fields = ("vin", "license_plate", "make", "model")
 
@@ -66,7 +67,7 @@ class LowStockFilter(admin.SimpleListFilter):
         return queryset
 
 
-class StockMovementInline(admin.TabularInline):
+class StockMovementInline(TabularInline):
     model = StockMovement
     extra = 1
     fields = ("change", "reason", "note", "repair_order", "created_at")
@@ -80,7 +81,7 @@ class StockMovementInline(admin.TabularInline):
 
 
 @admin.register(Part)
-class PartAdmin(admin.ModelAdmin):
+class PartAdmin(ModelAdmin):
     list_display = (
         "sku", "name", "quantity", "reorder_level", "low_stock",
         "cost", "price", "supplier", "location",
@@ -100,13 +101,13 @@ class PartAdmin(admin.ModelAdmin):
 
 # ---------- Repair orders ----------
 
-class LineItemInline(admin.TabularInline):
+class LineItemInline(TabularInline):
     model = LineItem
     extra = 1
     autocomplete_fields = ["part"]
 
 
-class AttachmentInline(admin.TabularInline):
+class AttachmentInline(TabularInline):
     model = Attachment
     extra = 0
 
@@ -121,9 +122,15 @@ class AttachmentInline(admin.TabularInline):
 
 
 @admin.register(RepairOrder)
-class RepairOrderAdmin(admin.ModelAdmin):
+class RepairOrderAdmin(ModelAdmin):
     list_display = ("id", "vehicle", "status", "created_at")
     list_filter = ("status",)
+    search_fields = (
+        "id", "vehicle__vin", "vehicle__license_plate",
+        "vehicle__customer__first_name", "vehicle__customer__last_name",
+    )
+    compressed_fields = True
+    warn_unsaved_form = True
     inlines = [LineItemInline, AttachmentInline]
     readonly_fields = (
         "estimate_link",
@@ -160,11 +167,11 @@ class RepairOrderAdmin(admin.ModelAdmin):
             return "Save the repair order first"
         url = reverse("upload_media", args=[obj.pk])
         return format_html(
-            '<a class="button" href="{}">Take or upload photos / video</a>', url
+            '<a style="display:inline-block;padding:8px 14px;border-radius:8px;background:#1a56db;color:#fff;font-weight:600;text-decoration:none" href="{}">Take or upload photos / video</a>', url
         )
 
 
 @admin.register(Message)
-class MessageAdmin(admin.ModelAdmin):
+class MessageAdmin(ModelAdmin):
     list_display = ("created_at", "direction", "phone", "customer", "body")
     list_filter = ("direction",)
