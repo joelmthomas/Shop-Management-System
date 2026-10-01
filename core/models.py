@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from django.db import models
 
+from .vin import decode_vin
 
 
 def generate_token():
@@ -37,6 +38,17 @@ class Vehicle(models.Model):
     model = models.CharField(max_length=50, blank=True)
     license_plate = models.CharField(max_length=15, blank=True)
     mileage = models.PositiveIntegerField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.vin:
+            self.vin = self.vin.strip().upper()
+            if not (self.year and self.make and self.model):
+                info = decode_vin(self.vin)
+                if info:
+                    self.year = self.year or info["year"]
+                    self.make = self.make or info["make"]
+                    self.model = self.model or info["model"]
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.year or ''} {self.make} {self.model}".strip()
