@@ -1,10 +1,14 @@
 from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages as django_messages
+from django.db.models import F
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import Attachment, Customer, LineItem, Message, RepairOrder, Vehicle
+from .models import (
+    Attachment, Customer, LineItem, Message, Part, RepairOrder,
+    StockMovement, Vehicle, Vendor,
+)
 from .sms import send_sms
 
 
@@ -47,9 +51,65 @@ class VehicleAdmin(admin.ModelAdmin):
     search_fields = ("vin", "license_plate", "make", "model")
 
 
+# ---------- Inventory ----------
+
+@admin.register(Vendor)
+class VendorAdmin(admin.ModelAdmin):
+    list_display = ("name", "phone", "account_number")
+    search_fields = ("name",)
+
+
+class LowStockFilter(admin.SimpleListFilter):
+    title = "stock level"
+    parameter_name = "stock"
+
+    def lookups(self, request, model_admin):
+        return [("low", "Low or out of stock")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "low":
+            return queryset.filter(quantity__lte=F("reorder_level"))
+        return queryset
+
+
+class StockMovementInline(admin.TabularInline):
+    model = StockMovement
+    extra = 1
+    fields = ("change", "reason", "note", "repair_order", "created_at")
+    readonly_fields = ("repair_order", "created_at")
+
+    def has_change_permission(self, request, obj=None):
+        return False  # history is add-only
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Part)
+class PartAdmin(admin.ModelAdmin):
+    list_display = (
+        "sku", "name", "quantity", "reorder_level", "low_stock",
+        "cost", "price", "vendor", "location",
+    )
+    list_filter = (LowStockFilter, "vendor")
+    search_fields = ("sku", "name")
+    inlines = [StockMovementInline]
+
+    @admin.display(description="Low?", boolean=True)
+    def low_stock(self, obj):
+        return obj.is_low
+
+    def get_readonly_fields(self, request, obj=None):
+        # After creation, stock only changes through movements so the history stays accurate.
+        return ("quantity",) if obj else ()
+
+
+# ---------- Repair orders ----------
+
 class LineItemInline(admin.TabularInline):
     model = LineItem
     extra = 1
+    autocomplete_fields = ["part"]
 
 
 class AttachmentInline(admin.TabularInline):
@@ -76,10 +136,22 @@ class RepairOrderAdmin(admin.ModelAdmin):
         "upload_link",
         "responded_at",
         "responded_ip",
+        "stock_deducted",
         "subtotal",
         "tax_amount",
         "total",
     )
+
+    def save_related(self, request, form, formsets, change):
+        # Line items are saved after the repair order itself, so deduct stock here.
+        super().save_related(request, form, formsets, change)
+        ro = form.instance
+        if ro.status in (RepairOrder.Status.COMPLETE, RepairOrder.Status.PAID):
+            used = ro.deduct_stock()
+            if used:
+                self.message_user(
+                    request, f"Removed {used} part line(s) from inventory."
+                )
 
     @admin.display(description="Customer estimate link")
     def estimate_link(self, obj):
