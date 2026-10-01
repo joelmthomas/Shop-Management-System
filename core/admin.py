@@ -1,6 +1,23 @@
-from django.contrib import admin
+from django.contrib import admin, messages as django_messages
 
-from .models import Customer, LineItem, RepairOrder, Vehicle
+from .models import Customer, LineItem, Message, RepairOrder, Vehicle
+from .sms import send_sms
+
+
+@admin.action(description="Send test text")
+def send_test_text(modeladmin, request, queryset):
+    for customer in queryset:
+        try:
+            send_sms(customer, "Test message from the shop.")
+            modeladmin.message_user(request, f"Sent to {customer}")
+        except Exception as e:
+            modeladmin.message_user(request, f"Failed for {customer}: {e}", django_messages.ERROR)
+
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "direction", "phone", "customer", "body")
+    list_filter = ("direction",)
 
 
 class VehicleInline(admin.TabularInline):
