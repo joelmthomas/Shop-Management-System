@@ -25,26 +25,22 @@
     .done { background: #e8f6ed; color: #0a7a33; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
     .badge-approved { color: #0a7a33; font-weight: 600; }
     .badge-declined { color: #b3261e; font-weight: 600; }
-    .media img, .media video { width: 100%; border-radius: 8px; margin-top: 8px; display: block; }
     .media-link { display: block; text-align: center; padding: 14px; margin-bottom: 12px; border-radius: 10px; background: #fff; border: 2px solid #1a56db; color: #1a56db; font-weight: 600; text-decoration: none; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-      {% with total=ro.attachments.count %}
-  {% if total %}
-  <a class="media-link" href="{% url 'estimate_media' ro.approval_token %}">View photos &amp; videos of your vehicle ({{ total }})</a>
-  {% endif %}
-  {% endwith %}
-      {% if a.caption %}<div class="muted">{{ a.caption }}</div>{% endif %}
-    {% endfor %}
-  </div>
-  {% endif %}
     <h1>Phillips Auto Care</h1>
     <div class="muted">Estimate #{{ ro.pk }} &middot; {{ ro.vehicle }}</div>
     {% if ro.complaint %}<p>{{ ro.complaint }}</p>{% endif %}
   </div>
+
+  {% with total=ro.attachments.count %}
+  {% if total %}
+  <a class="media-link" href="{% url 'estimate_media' ro.approval_token %}">View photos &amp; videos of your vehicle ({{ total }})</a>
+  {% endif %}
+  {% endwith %}
 
   {% if ro.responded_at %}<div class="done">Thank you! We received your response.</div>{% endif %}
 
