@@ -61,6 +61,8 @@ class RepairOrder(models.Model):
     # Used later for the customer approval link
     approval_token = models.CharField(
         max_length=64, unique=True, default=generate_token, editable=False
+        responded_at = models.DateTimeField(null=True, blank=True, editable=False)
+        responded_ip = models.GenericIPAddressField(null=True, blank=True, editable=False)
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

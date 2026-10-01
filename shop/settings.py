@@ -26,7 +26,10 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-
+_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+SITE_URL = os.environ.get("SITE_URL") or (
+    f"https://{_host}" if _host else "http://127.0.0.1:8000"
+)
 # Application definition
 
 INSTALLED_APPS = [

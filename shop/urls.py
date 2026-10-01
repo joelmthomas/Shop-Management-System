@@ -21,4 +21,5 @@ from core import views
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("sms/incoming/", views.twilio_incoming),
+    path("e/<str:token>/", views.estimate, name="estimate"),
 ]
