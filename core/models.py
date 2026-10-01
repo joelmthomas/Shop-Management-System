@@ -150,6 +150,11 @@ class Attachment(models.Model):
     repair_order = models.ForeignKey(
         RepairOrder, on_delete=models.CASCADE, related_name="attachments"
     )
+    line_item = models.ForeignKey(
+        LineItem, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="attachments",
+        help_text="Leave blank for general photos of the vehicle",
+    )
     file = models.FileField(upload_to=attachment_path)
     caption = models.CharField(max_length=200, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)

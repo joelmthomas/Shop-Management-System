@@ -48,6 +48,15 @@ class AttachmentInline(admin.TabularInline):
     model = Attachment
     extra = 0
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "line_item":
+            object_id = request.resolver_match.kwargs.get("object_id")
+            if object_id:
+                kwargs["queryset"] = LineItem.objects.filter(repair_order_id=object_id)
+            else:
+                kwargs["queryset"] = LineItem.objects.none()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 
 @admin.register(RepairOrder)
 class RepairOrderAdmin(admin.ModelAdmin):

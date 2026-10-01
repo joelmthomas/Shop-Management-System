@@ -25,7 +25,12 @@
     .done { background: #e8f6ed; color: #0a7a33; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
     .badge-approved { color: #0a7a33; font-weight: 600; }
     .badge-declined { color: #b3261e; font-weight: 600; }
-    .media-link { display: block; text-align: center; padding: 14px; margin-bottom: 12px; border-radius: 10px; background: #fff; border: 2px solid #1a56db; color: #1a56db; font-weight: 600; text-decoration: none; }
+    details.media-box { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+    details.media-box summary { cursor: pointer; color: #1a56db; font-weight: 600; list-style: none; }
+    details.media-box summary::-webkit-details-marker { display: none; }
+    details.media-box summary::before { content: "\25B8  "; }
+    details.media-box[open] summary::before { content: "\25BE  "; }
+    .media-box img, .media-box video { width: 100%; border-radius: 8px; margin-top: 8px; display: block; }
   </style>
 </head>
 <body>
@@ -34,13 +39,21 @@
     <h1>Phillips Auto Care</h1>
     <div class="muted">Estimate #{{ ro.pk }} &middot; {{ ro.vehicle }}</div>
     {% if ro.complaint %}<p>{{ ro.complaint }}</p>{% endif %}
-  </div>
 
-  {% with total=ro.attachments.count %}
-  {% if total %}
-  <a class="media-link" href="{% url 'estimate_media' ro.approval_token %}">View photos &amp; videos of your vehicle ({{ total }})</a>
-  {% endif %}
-  {% endwith %}
+    {% if general_media %}
+    <details class="media-box">
+      <summary>See photos &amp; videos of your vehicle ({{ general_media|length }})</summary>
+      {% for a in general_media %}
+        {% if a.is_video %}
+          <video controls playsinline preload="metadata" src="{{ a.file.url }}"></video>
+        {% else %}
+          <a href="{{ a.file.url }}" target="_blank"><img src="{{ a.file.url }}" loading="lazy" alt="{{ a.caption }}"></a>
+        {% endif %}
+        {% if a.caption %}<div class="muted">{{ a.caption }}</div>{% endif %}
+      {% endfor %}
+    </details>
+    {% endif %}
+  </div>
 
   {% if ro.responded_at %}<div class="done">Thank you! We received your response.</div>{% endif %}
 
@@ -53,6 +66,23 @@
         <span>${{ item.total|floatformat:2 }}</span>
       </div>
       <div class="muted">{{ item.get_kind_display }} &middot; {{ item.quantity }} x ${{ item.unit_price }}</div>
+
+      {% with media=item.attachments.all %}
+      {% if media %}
+      <details class="media-box">
+        <summary>See photos &amp; videos ({{ media|length }})</summary>
+        {% for a in media %}
+          {% if a.is_video %}
+            <video controls playsinline preload="metadata" src="{{ a.file.url }}"></video>
+          {% else %}
+            <a href="{{ a.file.url }}" target="_blank"><img src="{{ a.file.url }}" loading="lazy" alt="{{ a.caption }}"></a>
+          {% endif %}
+          {% if a.caption %}<div class="muted">{{ a.caption }}</div>{% endif %}
+        {% endfor %}
+      </details>
+      {% endif %}
+      {% endwith %}
+
       {% if can_respond %}
         <div class="choices">
           <label><input type="radio" name="item_{{ item.id }}" value="approved"><span>Approve</span></label>

@@ -9,7 +9,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("sms/incoming/", views.twilio_incoming),
     path("e/<str:token>/", views.estimate, name="estimate"),
-    path("e/<str:token>/media/", views.estimate_media, name="estimate_media"),
     path("staff/ro/<int:pk>/media/", views.upload_media, name="upload_media"),
 ]
 

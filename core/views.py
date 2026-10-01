@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -50,7 +51,7 @@ def twilio_incoming(request):
 
 def estimate(request, token):
     ro = get_object_or_404(RepairOrder, approval_token=token)
-    items = list(ro.line_items.all())
+    items = list(ro.line_items.prefetch_related("attachments"))
     can_respond = (
         ro.status == RepairOrder.Status.ESTIMATE
         and ro.responded_at is None
@@ -82,16 +83,9 @@ def estimate(request, token):
     return render(request, "core/estimate.html", {
         "ro": ro,
         "items": items,
+        "general_media": ro.attachments.filter(line_item__isnull=True),
         "can_respond": can_respond,
         "error": error,
-    })
-
-
-def estimate_media(request, token):
-    ro = get_object_or_404(RepairOrder, approval_token=token)
-    return render(request, "core/estimate_media.html", {
-        "ro": ro,
-        "attachments": ro.attachments.all(),
     })
 
 
@@ -100,6 +94,8 @@ def upload_media(request, pk):
     ro = get_object_or_404(RepairOrder, pk=pk)
 
     if request.method == "POST":
+        raw_item = request.POST.get("line_item", "")
+        line_item = ro.line_items.filter(pk=raw_item).first() if raw_item.isdigit() else None
         caption = request.POST.get("caption", "").strip()[:200]
         saved = 0
         for f in request.FILES.getlist("files"):
@@ -110,13 +106,19 @@ def upload_media(request, pk):
             if f.size > MAX_UPLOAD_BYTES:
                 messages.error(request, f"{f.name}: file is too large (100 MB max).")
                 continue
-            Attachment.objects.create(repair_order=ro, file=f, caption=caption)
+            Attachment.objects.create(
+                repair_order=ro, line_item=line_item, file=f, caption=caption
+            )
             saved += 1
         if saved:
-            messages.success(request, f"Uploaded {saved} file(s).")
-        return redirect("upload_media", pk=ro.pk)
+            target = line_item.description if line_item else "General"
+            messages.success(request, f"Uploaded {saved} file(s) to: {target}")
+        url = reverse("upload_media", args=[ro.pk])
+        return redirect(f"{url}?item={line_item.pk if line_item else ''}")
 
     return render(request, "core/upload_media.html", {
         "ro": ro,
-        "attachments": ro.attachments.all(),
+        "line_items": ro.line_items.all(),
+        "selected": request.GET.get("item", ""),
+        "attachments": ro.attachments.select_related("line_item"),
     })

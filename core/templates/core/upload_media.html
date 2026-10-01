@@ -10,14 +10,16 @@
     .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
     h1 { font-size: 1.2rem; margin: 0 0 4px; }
     .muted { color: #666; font-size: .9rem; }
+    label.field { display: block; font-weight: 600; margin: 12px 0 6px; }
     .btn { display: block; width: 100%; box-sizing: border-box; text-align: center; padding: 16px; margin-top: 10px; font-size: 1rem; font-weight: 600; border-radius: 10px; background: #1a56db; color: #fff; cursor: pointer; }
     .btn.alt { background: #fff; color: #1a56db; border: 2px solid #1a56db; }
-    input[type=text] { width: 100%; box-sizing: border-box; padding: 12px; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; }
+    input[type=text], select { width: 100%; box-sizing: border-box; padding: 12px; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
     .msg { padding: 10px; border-radius: 8px; margin-bottom: 12px; }
     .msg.success { background: #e8f6ed; color: #0a7a33; }
     .msg.error { background: #fbeae9; color: #b3261e; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .grid img, .grid video { width: 100%; border-radius: 8px; display: block; }
+    .tag { font-size: .75rem; color: #666; margin-top: 2px; }
     a { color: #1a56db; }
     #uploading { display: none; text-align: center; font-weight: 600; padding: 12px; }
   </style>
@@ -35,7 +37,17 @@
   <div class="card">
     <form method="post" enctype="multipart/form-data" id="upload-form">
       {% csrf_token %}
-      <input type="text" name="caption" placeholder="Caption (optional), e.g. Worn brake pads">
+
+      <label class="field" for="line_item">Which item is this for?</label>
+      <select name="line_item" id="line_item">
+        <option value="">General (whole vehicle)</option>
+        {% for li in line_items %}
+          <option value="{{ li.id }}" {% if selected == li.id|stringformat:"s" %}selected{% endif %}>{{ li.description }}</option>
+        {% endfor %}
+      </select>
+
+      <label class="field" for="caption">Caption (optional)</label>
+      <input type="text" name="caption" id="caption" placeholder="e.g. Worn brake pads">
 
       <label class="btn" for="cam-photo">Take photo</label>
       <label class="btn" for="cam-video">Record video</label>
@@ -47,6 +59,9 @@
 
       <div id="uploading">Uploading... please wait</div>
     </form>
+    {% if not line_items %}
+      <p class="muted">Tip: add line items to the repair order first so you can attach media to a specific item.</p>
+    {% endif %}
   </div>
 
   {% if attachments %}
@@ -54,11 +69,14 @@
     <strong>Already attached ({{ attachments|length }})</strong>
     <div class="grid">
       {% for a in attachments %}
-        {% if a.is_video %}
-          <video src="{{ a.file.url }}" controls playsinline preload="metadata"></video>
-        {% else %}
-          <img src="{{ a.file.url }}" loading="lazy" alt="{{ a.caption }}">
-        {% endif %}
+        <div>
+          {% if a.is_video %}
+            <video src="{{ a.file.url }}" controls playsinline preload="metadata"></video>
+          {% else %}
+            <img src="{{ a.file.url }}" loading="lazy" alt="{{ a.caption }}">
+          {% endif %}
+          <div class="tag">{% if a.line_item %}{{ a.line_item.description }}{% else %}General{% endif %}</div>
+        </div>
       {% endfor %}
     </div>
   </div>
