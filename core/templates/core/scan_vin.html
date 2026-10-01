@@ -21,6 +21,7 @@
     .msg.error { background: #fbeae9; color: #b3261e; }
     .msg.warning { background: #fff4e0; color: #8a5a00; }
     #status { margin-top: 10px; font-weight: 600; }
+    #raw { margin-top: 6px; font-size: .8rem; color: #888; word-break: break-all; }
     #preview { margin-top: 10px; padding: 10px; border-radius: 8px; background: #f0f4ff; display: none; }
     #check { margin-top: 6px; font-size: .9rem; }
     .ok { color: #0a7a33; } .warn { color: #8a5a00; }
@@ -53,6 +54,7 @@
       <input type="file" id="photo" accept="image/*" capture="environment" hidden>
       <img id="thumb" alt="VIN photo">
       <div id="status" class="muted">Tip: fill the frame with the VIN, hold steady, and avoid glare.</div>
+      <div id="raw"></div>
 
       <label class="field" for="vin">VIN (check it against the plate)</label>
       <input type="text" name="vin" id="vin" maxlength="17" autocomplete="off" autocapitalize="characters" placeholder="17 characters">
@@ -70,10 +72,15 @@
   var TRANS = {A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,J:1,K:2,L:3,M:4,N:5,P:7,R:9,S:2,T:3,U:4,V:5,W:6,X:7,Y:8,Z:9};
   var WEIGHTS = [8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2];
   var VALID = /^[A-HJ-NPR-Z0-9]{17}$/;
+  // Characters the reader commonly mixes up (what it read -> what it might really be).
+  // Used only to repair a read that fails the check digit.
+  var LOOKALIKES = {"L":["1"],"T":["1","7"],"S":["5"],"B":["8"],"Z":["2"],"G":["6"],"D":["0"],
+                    "1":["L"],"5":["S"],"8":["B"],"2":["Z"],"6":["G"],"0":["D"],"7":["T"]};
 
   var photo = document.getElementById("photo");
   var thumb = document.getElementById("thumb");
   var statusEl = document.getElementById("status");
+  var rawEl = document.getElementById("raw");
   var vinEl = document.getElementById("vin");
   var checkEl = document.getElementById("check");
   var previewEl = document.getElementById("preview");
@@ -96,37 +103,156 @@
     return s.toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/[OQ]/g, "0").replace(/I/g, "1");
   }
 
-  function findVin(text) {
-    var chunks = text.split(/\n/).map(normalize).filter(function (x) { return x.length >= 17; });
-    chunks.push(normalize(text));
-    var fallback = null;
-    for (var c = 0; c < chunks.length; c++) {
-      for (var i = 0; i + 17 <= chunks[c].length; i++) {
-        var cand = chunks[c].substr(i, 17);
-        if (!VALID.test(cand)) continue;
-        if (checkOk(cand)) return cand;
-        if (!fallback) fallback = cand;
+  // If a 17-character read fails the check digit, try swapping ONE letter that is often a misread
+  // digit (L for 1, S for 5, B for 8, Z for 2, G for 6, D for 0, T for 1). Accept the repair only when
+  // exactly one swap makes the check digit pass, so we never guess between two possibilities.
+  function repair(cand) {
+    var fixes = [];
+    for (var i = 0; i < 17; i++) {
+      var alts = LOOKALIKES[cand.charAt(i)] || [];
+      for (var k = 0; k < alts.length; k++) {
+        if (!/\d/.test(alts[k])) continue;
+        var t = cand.substr(0, i) + alts[k] + cand.substr(i + 1);
+        if (VALID.test(t) && checkOk(t)) fixes.push(t);
       }
     }
-    return fallback;
+    return fixes.length === 1 ? fixes[0] : null;
   }
 
-  function shrink(file, maxSide) {
-    return new Promise(function (resolve) {
+  // Look at each line the reader returned. A VIN line is 17 characters, or a few more if a label like
+  // "VIN" or a border mark got read along with it. Longer lines are ordinary label text and are skipped,
+  // because scanning long text for 17-character windows finds false matches by chance.
+  // Preference order: a read that passes the check digit as-is, then a single unambiguous repair,
+  // then (only for a clean 17-character line) the raw read, which the tech must verify by eye.
+  // Returns {vin, exact, repaired} or null.
+  function findVin(text) {
+    var lines = text.split(/\n/).map(normalize).filter(function (x) { return x.length >= 17 && x.length <= 20; });
+    var repaired = {}, raw = null;
+    for (var c = 0; c < lines.length; c++) {
+      for (var i = 0; i + 17 <= lines[c].length; i++) {
+        var cand = lines[c].substr(i, 17);
+        if (!VALID.test(cand)) continue;
+        if (checkOk(cand)) return {vin: cand, exact: true, repaired: false};
+        var fixed = repair(cand);
+        if (fixed) repaired[fixed] = true;
+        if (!raw && lines[c].length === 17) raw = cand;
+      }
+    }
+    var keys = Object.keys(repaired);
+    if (keys.length === 1) return {vin: keys[0], exact: true, repaired: true};
+    if (raw) return {vin: raw, exact: false, repaired: false};
+    return null;
+  }
+
+  function loadImage(file) {
+    return new Promise(function (resolve, reject) {
       var img = new Image();
-      img.onload = function () {
-        var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        var canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        var ctx = canvas.getContext("2d");
-        ctx.filter = "grayscale(1) contrast(1.4)";
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        URL.revokeObjectURL(img.src);
-        canvas.toBlob(function (b) { resolve(b); }, "image/jpeg", 0.92);
-      };
+      img.onload = function () { resolve(img); };
+      img.onerror = reject;
       img.src = URL.createObjectURL(file);
     });
+  }
+
+  function drawScaled(img, targetLongSide) {
+    var scale = Math.min(2.5, targetLongSide / Math.max(img.width, img.height));
+    var canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  // Grayscale, then stretch contrast using the 2nd-98th percentile so dull or washed-out photos pop.
+  function grayStretch(src) {
+    var w = src.width, h = src.height;
+    var data = src.getContext("2d").getImageData(0, 0, w, h);
+    var px = data.data, gray = new Uint8ClampedArray(w * h), hist = new Array(256).fill(0);
+    for (var i = 0, j = 0; i < px.length; i += 4, j++) {
+      var g = Math.round(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]);
+      gray[j] = g; hist[g]++;
+    }
+    var total = w * h, acc = 0, lo = 0, hi = 255;
+    for (var a = 0; a < 256; a++) { acc += hist[a]; if (acc >= total * 0.02) { lo = a; break; } }
+    acc = 0;
+    for (var b = 255; b >= 0; b--) { acc += hist[b]; if (acc >= total * 0.02) { hi = b; break; } }
+    if (hi - lo < 20) { lo = 0; hi = 255; }
+    for (var k = 0; k < gray.length; k++) {
+      gray[k] = Math.max(0, Math.min(255, (gray[k] - lo) * 255 / (hi - lo)));
+    }
+    return {gray: gray, w: w, h: h};
+  }
+
+  function toCanvas(gray, w, h) {
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    var ctx = c.getContext("2d"), out = ctx.createImageData(w, h);
+    for (var i = 0, j = 0; j < gray.length; i += 4, j++) {
+      out.data[i] = out.data[i + 1] = out.data[i + 2] = gray[j]; out.data[i + 3] = 255;
+    }
+    ctx.putImageData(out, 0, 0);
+    return c;
+  }
+
+  // Adaptive threshold: each pixel is compared to the average of its neighborhood, so uneven
+  // lighting and glare gradients across the plate don't wipe out the characters.
+  function adaptive(gs) {
+    var w = gs.w, h = gs.h, gray = gs.gray;
+    var integral = new Float64Array((w + 1) * (h + 1));
+    for (var y = 1; y <= h; y++) {
+      var rowSum = 0;
+      for (var x = 1; x <= w; x++) {
+        rowSum += gray[(y - 1) * w + (x - 1)];
+        integral[y * (w + 1) + x] = integral[(y - 1) * (w + 1) + x] + rowSum;
+      }
+    }
+    var r = Math.max(15, Math.round(Math.min(w, h) / 8));
+    var out = new Uint8ClampedArray(w * h);
+    for (var yy = 0; yy < h; yy++) {
+      var y0 = Math.max(0, yy - r), y1 = Math.min(h - 1, yy + r);
+      for (var xx = 0; xx < w; xx++) {
+        var x0 = Math.max(0, xx - r), x1 = Math.min(w - 1, xx + r);
+        var area = (x1 - x0 + 1) * (y1 - y0 + 1);
+        var sum = integral[(y1 + 1) * (w + 1) + (x1 + 1)] - integral[y0 * (w + 1) + (x1 + 1)]
+                - integral[(y1 + 1) * (w + 1) + x0] + integral[y0 * (w + 1) + x0];
+        out[yy * w + xx] = gray[yy * w + xx] < (sum / area) * 0.85 ? 0 : 255;
+      }
+    }
+    return toCanvas(out, w, h);
+  }
+
+  async function readVin(file) {
+    var img = await loadImage(file);
+    URL.revokeObjectURL(img.src);
+    var gs = grayStretch(drawScaled(img, 2000));
+    var grayCanvas = toCanvas(gs.gray, gs.w, gs.h);
+    var adaptiveCanvas = adaptive(gs);
+
+    var worker = await Tesseract.createWorker("eng");
+    var passes = [
+      {name: "gray block",    canvas: grayCanvas,     psm: "6"},
+      {name: "clean block",   canvas: adaptiveCanvas, psm: "6"},
+      {name: "clean line",    canvas: adaptiveCanvas, psm: "7"},
+      {name: "gray sparse",   canvas: grayCanvas,     psm: "11"},
+      {name: "gray auto",     canvas: grayCanvas,     psm: "3"}
+    ];
+    var best = null, seen = [];
+    try {
+      for (var p = 0; p < passes.length; p++) {
+        statusEl.textContent = "Reading the photo... (attempt " + (p + 1) + " of " + passes.length + ")";
+        await worker.setParameters({
+          tessedit_pageseg_mode: passes[p].psm,
+          tessedit_char_whitelist: "ABCDEFGHJKLMNPRSTUVWXYZ0123456789"
+        });
+        var result = await worker.recognize(passes[p].canvas);
+        var text = (result.data.text || "").trim();
+        if (text) seen.push(text.replace(/\s+/g, " ").slice(0, 60));
+        var found = findVin(text);
+        if (found && found.exact && !found.repaired) { best = found; break; }
+        if (found && (!best || (found.repaired && !best.repaired))) best = found;
+      }
+    } finally {
+      await worker.terminate();
+    }
+    return {best: best, seen: seen};
   }
 
   function refresh() {
@@ -165,23 +291,25 @@
     if (!file) return;
     thumb.src = URL.createObjectURL(file);
     thumb.style.display = "block";
+    rawEl.textContent = "";
     statusEl.textContent = "Reading the photo... the first scan can take 20-30 seconds.";
     try {
-      var small = await shrink(file, 1800);
-      var worker = await Tesseract.createWorker("eng");
-      var result = await worker.recognize(small);
-      await worker.terminate();
-      var vin = findVin(result.data.text || "");
-      if (vin) {
-        vinEl.value = vin;
-        statusEl.textContent = "Found a possible VIN. Please check it against the plate.";
+      var out = await readVin(file);
+      if (out.best) {
+        vinEl.value = out.best.vin;
+        statusEl.textContent = out.best.repaired
+          ? "Found a VIN and corrected a look-alike character. Please check it against the plate."
+          : "Found a possible VIN. Please check it against the plate.";
       } else {
-        statusEl.textContent = "Couldn't read a VIN. Try again with less glare, or type it in below.";
+        statusEl.textContent = "Couldn't read a VIN. Try again closer, with less glare, or type it in below.";
+        if (out.seen.length) rawEl.textContent = "What the reader saw: " + out.seen.join(" | ");
       }
       refresh();
     } catch (err) {
       statusEl.textContent = "Couldn't read the photo. You can type the VIN in below.";
+      rawEl.textContent = String(err && err.message || err);
     }
+    photo.value = "";
   });
 })();
 </script>
