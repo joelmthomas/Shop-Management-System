@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photos &amp; videos - Estimate #{{ ro.pk }}</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #f4f5f7; color: #1a1a1a; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    h1 { font-size: 1.2rem; margin: 0 0 4px; }
+    .muted { color: #666; font-size: .9rem; }
+    img, video { width: 100%; border-radius: 8px; display: block; margin-top: 8px; }
+    a { color: #1a56db; font-weight: 600; text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="{% url 'estimate' ro.approval_token %}">&larr; Back to your estimate</a></p>
+
+  <div class="card">
+    <h1>Photos &amp; videos</h1>
+    <div class="muted">{{ ro.vehicle }}</div>
+  </div>
+
+  {% for a in attachments %}
+  <div class="card">
+    {% if a.is_video %}
+      <video controls playsinline preload="metadata" src="{{ a.file.url }}"></video>
+    {% else %}
+      <a href="{{ a.file.url }}" target="_blank"><img src="{{ a.file.url }}" loading="lazy" alt="{{ a.caption }}"></a>
+    {% endif %}
+    {% if a.caption %}<div class="muted" style="margin-top:8px">{{ a.caption }}</div>{% endif %}
+  </div>
+  {% empty %}
+  <div class="card muted">No photos or videos yet.</div>
+  {% endfor %}
+</div>
+</body>
+</html>

@@ -1,7 +1,10 @@
+import os
 import secrets
+import uuid
 from decimal import Decimal
 
 from django.db import models
+
 
 
 def generate_token():
@@ -135,3 +138,28 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.direction} {self.phone}: {self.body[:40]}"
+
+def attachment_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return f"repair_orders/{instance.repair_order_id}/{uuid.uuid4().hex}{ext}"
+
+
+class Attachment(models.Model):
+    VIDEO_EXTENSIONS = (".mp4", ".mov", ".m4v", ".webm")
+
+    repair_order = models.ForeignKey(
+        RepairOrder, on_delete=models.CASCADE, related_name="attachments"
+    )
+    file = models.FileField(upload_to=attachment_path)
+    caption = models.CharField(max_length=200, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["uploaded_at"]
+
+    @property
+    def is_video(self):
+        return self.file.name.lower().endswith(self.VIDEO_EXTENSIONS)
+
+    def __str__(self):
+        return self.caption or self.file.name
