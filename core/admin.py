@@ -31,6 +31,14 @@ class CustomerAdmin(admin.ModelAdmin):
     search_fields = ("first_name", "last_name", "phone")
     inlines = [VehicleInline]
     actions = [send_test_text]
+    readonly_fields = ("scan_vin_link",)
+
+    @admin.display(description="Add vehicle by VIN photo")
+    def scan_vin_link(self, obj):
+        if not obj.pk:
+            return "Save the customer first"
+        url = f"{reverse('scan_vin')}?customer={obj.pk}"
+        return format_html('<a class="button" href="{}">Scan a VIN</a>', url)
 
 
 @admin.register(Vehicle)

@@ -2,7 +2,7 @@ import os
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -10,7 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from twilio.request_validator import RequestValidator
 
-from .models import Attachment, Customer, Message, RepairOrder
+from .models import Attachment, Customer, Message, RepairOrder, Vehicle
+from .vin import clean_vin, decode_vin
 
 STOP_WORDS = {"STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT"}
 START_WORDS = {"START", "UNSTOP"}
@@ -122,3 +123,41 @@ def upload_media(request, pk):
         "selected": request.GET.get("item", ""),
         "attachments": ro.attachments.select_related("line_item"),
     })
+
+
+@staff_member_required
+def scan_vin(request):
+    if request.method == "POST":
+        customer = get_object_or_404(Customer, pk=request.POST.get("customer"))
+        vin = clean_vin(request.POST.get("vin", ""))
+        if not vin:
+            messages.error(
+                request,
+                "That doesn't look like a valid VIN. It must be 17 characters "
+                "(letters and numbers, never I, O, or Q).",
+            )
+            return redirect(f"{reverse('scan_vin')}?customer={customer.pk}")
+        vehicle = Vehicle.objects.create(customer=customer, vin=vin)
+        if vehicle.make:
+            messages.success(request, f"Saved {vehicle} for {customer}.")
+        else:
+            messages.warning(
+                request,
+                "Saved the vehicle, but the VIN lookup found no details. "
+                "Please fill in year, make, and model.",
+            )
+        return redirect("admin:core_vehicle_change", vehicle.pk)
+
+    return render(request, "core/scan_vin.html", {
+        "customers": Customer.objects.all(),
+        "selected": request.GET.get("customer", ""),
+    })
+
+
+@staff_member_required
+def vin_lookup(request):
+    vin = clean_vin(request.GET.get("vin", ""))
+    info = decode_vin(vin) if vin else None
+    if not info:
+        return JsonResponse({"ok": False})
+    return JsonResponse({"ok": True, **info})
