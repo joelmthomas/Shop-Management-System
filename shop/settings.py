@@ -129,3 +129,29 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+R2_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME")
+if R2_BUCKET_NAME:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": R2_BUCKET_NAME,
+                "endpoint_url": os.environ["R2_ENDPOINT_URL"],
+                "access_key": os.environ["R2_ACCESS_KEY_ID"],
+                "secret_key": os.environ["R2_SECRET_ACCESS_KEY"],
+                "region_name": "auto",
+                "signature_version": "s3v4",
+                "querystring_auth": True,
+                "querystring_expire": 3600,
+                "default_acl": None,
+                "file_overwrite": False,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
