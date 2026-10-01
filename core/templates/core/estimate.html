@@ -12,8 +12,8 @@
     .muted { color: #666; font-size: .9rem; }
     .item-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
     .choices { display: flex; gap: 8px; margin-top: 10px; }
-    .choices label { flex: 1; text-align: center; padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; }
-    .choices input { display: none; }
+    .choices label { position: relative; flex: 1; text-align: center; padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; }
+    .choices input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
     .choices input[value="approved"]:checked + span { color: #0a7a33; font-weight: 700; }
     .choices label:has(input[value="approved"]:checked) { border-color: #0a7a33; background: #e8f6ed; }
     .choices label:has(input[value="declined"]:checked) { border-color: #b3261e; background: #fbeae9; }
