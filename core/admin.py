@@ -7,7 +7,7 @@ from django.utils.html import format_html
 
 from .models import (
     Attachment, Customer, LineItem, Message, Part, RepairOrder,
-    StockMovement, Vehicle, Vendor,
+    StockMovement, Vehicle,
 )
 from .sms import send_sms
 
@@ -51,13 +51,7 @@ class VehicleAdmin(admin.ModelAdmin):
     search_fields = ("vin", "license_plate", "make", "model")
 
 
-# ---------- Inventory ----------
-
-@admin.register(Vendor)
-class VendorAdmin(admin.ModelAdmin):
-    list_display = ("name", "phone", "account_number")
-    search_fields = ("name",)
-
+# ---------- Inventory ----------  (shows as one searchable "Inventory" list)
 
 class LowStockFilter(admin.SimpleListFilter):
     title = "stock level"
@@ -89,10 +83,10 @@ class StockMovementInline(admin.TabularInline):
 class PartAdmin(admin.ModelAdmin):
     list_display = (
         "sku", "name", "quantity", "reorder_level", "low_stock",
-        "cost", "price", "vendor", "location",
+        "cost", "price", "supplier", "location",
     )
-    list_filter = (LowStockFilter, "vendor")
-    search_fields = ("sku", "name")
+    list_filter = (LowStockFilter,)
+    search_fields = ("sku", "name", "supplier", "location", "notes")
     inlines = [StockMovementInline]
 
     @admin.display(description="Low?", boolean=True)

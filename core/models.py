@@ -55,24 +55,11 @@ class Vehicle(models.Model):
         return f"{self.year or ''} {self.make} {self.model}".strip()
 
 
-class Vendor(models.Model):
-    name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=30, blank=True)
-    account_number = models.CharField(max_length=50, blank=True)
-    notes = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ["name"]
-
-    def __str__(self):
-        return self.name
-
-
 class Part(models.Model):
     sku = models.CharField("Part number / SKU", max_length=50, unique=True)
     name = models.CharField(max_length=200)
-    vendor = models.ForeignKey(
-        Vendor, on_delete=models.SET_NULL, null=True, blank=True, related_name="parts"
+    supplier = models.CharField(
+        max_length=100, blank=True, help_text="Where you buy it, e.g. NAPA (optional)"
     )
     quantity = models.DecimalField(
         "In stock", max_digits=10, decimal_places=2, default=Decimal("0.00"),
@@ -89,6 +76,8 @@ class Part(models.Model):
 
     class Meta:
         ordering = ["name"]
+        verbose_name = "inventory item"
+        verbose_name_plural = "inventory"
 
     @property
     def is_low(self):
