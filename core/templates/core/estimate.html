@@ -7,7 +7,8 @@
   <style>
     body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #f4f5f7; color: #1a1a1a; }
     .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
-    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border: 2px solid transparent; }
+    .card.missing { border-color: #b3261e; }
     h1 { font-size: 1.3rem; margin: 0 0 4px; }
     .muted { color: #666; font-size: .9rem; }
     .item-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
@@ -29,18 +30,17 @@
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>Phillips Auto Repair</h1>
+    <h1>Phillips Auto Care</h1>
     <div class="muted">Estimate #{{ ro.pk }} &middot; {{ ro.vehicle }}</div>
     {% if ro.complaint %}<p>{{ ro.complaint }}</p>{% endif %}
   </div>
 
-  {% if error %}<div class="error">{{ error }}</div>{% endif %}
   {% if ro.responded_at %}<div class="done">Thank you! We received your response.</div>{% endif %}
 
-  <form method="post">
+  <form method="post" id="estimate-form">
     {% csrf_token %}
     {% for item in items %}
-    <div class="card">
+    <div class="card item-card">
       <div class="item-head">
         <span>{{ item.description }}</span>
         <span>${{ item.total|floatformat:2 }}</span>
@@ -48,7 +48,7 @@
       <div class="muted">{{ item.get_kind_display }} &middot; {{ item.quantity }} x ${{ item.unit_price }}</div>
       {% if can_respond %}
         <div class="choices">
-          <label><input type="radio" name="item_{{ item.id }}" value="approved" required><span>Approve</span></label>
+          <label><input type="radio" name="item_{{ item.id }}" value="approved"><span>Approve</span></label>
           <label><input type="radio" name="item_{{ item.id }}" value="declined"><span>Decline</span></label>
         </div>
       {% elif ro.responded_at %}
@@ -63,8 +63,43 @@
       <div class="grand"><span>Total</span><span>${{ ro.total|floatformat:2 }}</span></div>
     </div>
 
-    {% if can_respond %}<button type="submit">Submit my choices</button>{% endif %}
+    {% if can_respond %}
+      <div id="error-banner" class="error" role="alert" {% if not error %}hidden{% endif %}>{{ error }}</div>
+      <button type="submit">Submit my choices</button>
+    {% endif %}
   </form>
 </div>
+
+<script>
+  (function () {
+    var form = document.getElementById("estimate-form");
+    var banner = document.getElementById("error-banner");
+    if (!form || !banner) return;
+
+    form.addEventListener("submit", function (e) {
+      var cards = form.querySelectorAll(".item-card");
+      var anyMissing = false;
+      cards.forEach(function (card) {
+        var radios = card.querySelectorAll("input[type=radio]");
+        if (!radios.length) return;
+        var answered = Array.prototype.some.call(radios, function (r) { return r.checked; });
+        card.classList.toggle("missing", !answered);
+        if (!answered) anyMissing = true;
+      });
+      if (anyMissing) {
+        e.preventDefault();
+        banner.textContent = "Please approve or decline every item before submitting. Items that still need a choice are outlined in red.";
+        banner.hidden = false;
+        banner.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+
+    form.addEventListener("change", function (e) {
+      if (e.target.type === "radio") {
+        e.target.closest(".item-card").classList.remove("missing");
+      }
+    });
+  })();
+</script>
 </body>
 </html>

@@ -60,7 +60,7 @@ def estimate(request, token):
         for item in items:
             choice = request.POST.get(f"item_{item.id}")
             if choice not in ("approved", "declined"):
-                error = "Please choose Approve or Decline for every item."
+                 error = "Please approve or decline every item before submitting."
                 break
             choices[item.id] = choice
 
