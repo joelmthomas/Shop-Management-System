@@ -286,3 +286,95 @@ class MediaTests(TestCase):
 
         junk = SimpleUploadedFile("b.heic", b"not an image")
         self.assertIsNone(prepare_upload(junk)[0])
+
+
+class TechScreenTests(TestCase):
+    def setUp(self):
+        from .models import Customer, Part, RepairOrder, Vehicle
+        User = get_user_model()
+        User.objects.create_user("tech", password="pw", is_staff=True)
+        self.client.login(username="tech", password="pw")
+        cust = Customer.objects.create(first_name="Jose", last_name="Alvarez", phone="+19725550143")
+        self.vin = "1HGCR2F34EA000000"
+        self.veh = Vehicle.objects.create(
+            customer=cust, vin=self.vin, year=2014, make="Honda", model="Accord",
+        )
+        self.ro = RepairOrder.objects.create(vehicle=self.veh, complaint="Noise")
+        self.part = Part.objects.create(sku="BP-1", name="Brake pads", quantity=5, price=64.99)
+
+    def test_requires_staff(self):
+        self.client.logout()
+        for name, args in [("tech_jobs", []), ("tech_scan", []), ("tech_order", [self.ro.pk]), ("tech_finding", [self.ro.pk])]:
+            self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 302, name)
+
+    def test_screens_load(self):
+        self.assertContains(self.client.get(reverse("tech_jobs")), "Honda Accord")
+        self.assertEqual(self.client.get(reverse("tech_scan")).status_code, 200)
+        self.assertContains(self.client.get(reverse("tech_order", args=[self.ro.pk])), "Noise")
+        self.assertEqual(self.client.get(reverse("tech_finding", args=[self.ro.pk])).status_code, 200)
+
+    def test_vin_with_open_order_opens_it(self):
+        resp = self.client.get(reverse("tech_vin") + "?vin=" + self.vin.lower())
+        self.assertRedirects(resp, reverse("tech_order", args=[self.ro.pk]), fetch_redirect_response=False)
+
+    def test_vin_without_open_order_can_start_one(self):
+        from .models import RepairOrder
+        self.ro.status = "paid"
+        self.ro.save()
+        page = self.client.get(reverse("tech_vin") + "?vin=" + self.vin)
+        self.assertContains(page, "Start a work order")
+        self.client.post(reverse("tech_vin"), {"vin": self.vin})
+        self.assertEqual(RepairOrder.objects.exclude(status="paid").count(), 1)
+
+    def test_unknown_vin_goes_to_check_in(self):
+        from unittest import mock
+        with mock.patch("core.tech_views.decode_vin", return_value={"year": 2020, "make": "Kia", "model": "Soul"}):
+            resp = self.client.get(reverse("tech_vin") + "?vin=KNDJ23AU4L7000000")
+        self.assertContains(resp, "Check this car in")
+        self.assertContains(resp, "make=Kia")
+
+    def test_short_vin_is_rejected(self):
+        resp = self.client.get(reverse("tech_vin") + "?vin=123")
+        self.assertRedirects(resp, reverse("tech_scan"), fetch_redirect_response=False)
+
+    def test_check_in_form_is_prefilled_from_scan(self):
+        resp = self.client.get(reverse("staff_checkin") + "?vin=KNDJ23AU4L7000000&make=Kia&model=Soul")
+        self.assertContains(resp, 'value="Kia"')
+
+    def test_add_labor_finding(self):
+        self.client.post(reverse("tech_finding", args=[self.ro.pk]), {
+            "kind": "labor", "description": "Brake job", "quantity": "1", "unit_price": "120",
+        })
+        li = self.ro.line_items.get()
+        self.assertEqual(li.approval, "pending")
+
+    def test_no_charge_finding_is_auto_approved(self):
+        self.client.post(reverse("tech_finding", args=[self.ro.pk]), {
+            "kind": "labor", "description": "Tires look fine", "quantity": "1", "unit_price": "0",
+        })
+        self.assertEqual(self.ro.line_items.get().approval, "approved")
+
+    def test_part_finding_uses_inventory_price(self):
+        self.client.post(reverse("tech_finding", args=[self.ro.pk]), {
+            "kind": "part", "part_sku": "BP-1", "quantity": "2", "description": "",
+        })
+        li = self.ro.line_items.get()
+        self.assertEqual(li.part, self.part)
+        self.assertEqual(float(li.unit_price), 64.99)
+
+    def test_bad_finding_is_not_saved(self):
+        resp = self.client.post(reverse("tech_finding", args=[self.ro.pk]), {"kind": "labor", "quantity": "1"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.ro.line_items.count(), 0)
+
+    def test_tech_can_start_and_finish_but_not_mark_paid(self):
+        url = reverse("tech_order", args=[self.ro.pk])
+        self.client.post(url, {"do": "status", "status": "in_progress"})
+        self.ro.refresh_from_db()
+        self.assertEqual(self.ro.status, "in_progress")
+        self.client.post(url, {"do": "status", "status": "paid"})
+        self.ro.refresh_from_db()
+        self.assertEqual(self.ro.status, "in_progress")
+        self.client.post(url, {"do": "status", "status": "complete"})
+        self.ro.refresh_from_db()
+        self.assertEqual(self.ro.status, "complete")

@@ -354,6 +354,8 @@ def checkin(request, appt_id=None):
             return redirect(ro_url(ro.pk))
     else:
         initial = {}
+        if not appt:
+            initial = {k: request.GET[k] for k in ("vin", "year", "make", "model") if request.GET.get(k)}
         if appt:
             first, last = split_name(appt.name)
             year, make, model = split_vehicle(appt.vehicle)
@@ -493,6 +495,55 @@ class DetailsForm(forms.Form):
     tax_rate = forms.DecimalField(min_value=Decimal("0"), max_value=Decimal("30"), max_digits=5, decimal_places=2)
 
 
+def save_uploads(request, ro, line=None):
+    """Save the photos/videos in request.FILES onto a repair order.
+
+    HEIC photos are converted to JPEG. Returns (added, converted, skipped_reasons).
+    """
+    caption = request.POST.get("caption", "").strip()[:200]
+    added, converted, skipped = 0, 0, []
+    for f in request.FILES.getlist("files"):
+        ext = os.path.splitext(f.name)[1].lower()
+        if ext not in PHOTO_EXTENSIONS + Attachment.VIDEO_EXTENSIONS:
+            skipped.append(f"{f.name} (type not allowed)")
+        elif f.size > MAX_UPLOAD:
+            skipped.append(f"{f.name} (over 250 MB)")
+        else:
+            ready, why = prepare_upload(f)
+            if ready is None:
+                skipped.append(f"{f.name} ({why})")
+                continue
+            if ready is not f:
+                converted += 1
+            Attachment.objects.create(repair_order=ro, line_item=line, caption=caption, file=ready)
+            added += 1
+    return added, converted, skipped
+
+
+def report_uploads(request, added, converted, skipped, quiet_if_empty=False):
+    if added:
+        extra = f" ({converted} iPhone HEIC photo(s) converted to JPEG)" if converted else ""
+        messages.success(request, f"Added {added} photo/video file(s){extra}.")
+    if skipped:
+        messages.error(request, "Skipped: " + ", ".join(skipped))
+    if not added and not skipped and not quiet_if_empty:
+        messages.error(request, "Choose a photo or video first.")
+
+
+def change_status(request, ro, new):
+    """Move a repair order to a new status. Completing it takes parts out of stock, once."""
+    if new not in RS.values or new == ro.status:
+        return False
+    ro.status = new
+    ro.save(update_fields=["status", "updated_at"])
+    if new == RS.COMPLETE:
+        used = ro.deduct_stock()
+        if used:
+            messages.info(request, f"Took {used} part line(s) out of inventory.")
+    messages.success(request, f"RO #{ro.pk} is now {ro.get_status_display().lower()}.")
+    return True
+
+
 @staff_member_required
 def order(request, pk):
     ro = get_object_or_404(R.objects.select_related("vehicle__customer"), pk=pk)
@@ -532,15 +583,7 @@ def order(request, pk):
             return redirect(here + "#lines")
 
         elif do == "status":
-            new = request.POST.get("status")
-            if new in RS.values and new != ro.status:
-                ro.status = new
-                ro.save(update_fields=["status", "updated_at"])
-                if new == RS.COMPLETE:
-                    used = ro.deduct_stock()
-                    if used:
-                        messages.info(request, f"Took {used} part line(s) out of inventory.")
-                messages.success(request, f"RO #{ro.pk} is now {ro.get_status_display().lower()}.")
+            change_status(request, ro, request.POST.get("status"))
             return redirect(here)
 
         elif do == "details":
@@ -558,30 +601,7 @@ def order(request, pk):
             line = None
             if request.POST.get("line_item"):
                 line = LineItem.objects.filter(pk=request.POST["line_item"], repair_order=ro).first()
-            caption = request.POST.get("caption", "").strip()[:200]
-            added, converted, skipped = 0, 0, []
-            for f in request.FILES.getlist("files"):
-                ext = os.path.splitext(f.name)[1].lower()
-                if ext not in PHOTO_EXTENSIONS + Attachment.VIDEO_EXTENSIONS:
-                    skipped.append(f"{f.name} (type not allowed)")
-                elif f.size > MAX_UPLOAD:
-                    skipped.append(f"{f.name} (over 250 MB)")
-                else:
-                    ready, why = prepare_upload(f)
-                    if ready is None:
-                        skipped.append(f"{f.name} ({why})")
-                        continue
-                    if ready is not f:
-                        converted += 1
-                    Attachment.objects.create(repair_order=ro, line_item=line, caption=caption, file=ready)
-                    added += 1
-            if added:
-                extra = f" ({converted} iPhone HEIC photo(s) converted to JPEG)" if converted else ""
-                messages.success(request, f"Added {added} photo/video file(s){extra}.")
-            if skipped:
-                messages.error(request, "Skipped: " + ", ".join(skipped))
-            if not added and not skipped:
-                messages.error(request, "Choose a photo or video first.")
+            report_uploads(request, *save_uploads(request, ro, line))
             return redirect(here + "#photos")
 
         elif do == "delete_photo":

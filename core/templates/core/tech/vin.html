@@ -1,0 +1,32 @@
+{% extends "core/tech/base.html" %}
+{% block title %}VIN{% endblock %}
+{% block bar %}<a class="back" href="{% url 'tech_scan' %}">&larr; Scan again</a><div class="t">VIN</div>{% endblock %}
+{% block css %}
+.big{padding:22px 20px;margin-bottom:16px}
+.big .v{font-family:'Marcellus',Georgia,serif;font-size:30px;line-height:1.1}
+.big .code{font-family:ui-monospace,Menlo,monospace;letter-spacing:1px;font-size:17px;color:var(--muted);margin-top:8px;word-break:break-all}
+.big p{margin:12px 0 0;font-size:18px}
+{% endblock %}
+{% block content %}
+<div class="card big">
+  {% if state == 'start' %}
+  <div class="v">{{ vehicle }}</div>
+  <div class="code">{{ vin }}</div>
+  <p>{{ customer }}'s car. There is no open work order for it.</p>
+  {% else %}
+  <div class="v">{% if vehicle %}{{ vehicle }}{% else %}New car{% endif %}</div>
+  <div class="code">{{ vin }}</div>
+  <p>This VIN is not in the system yet. Check the car in first so it has a customer and a work order.{% if vehicle %} The year, make and model came from the VIN.{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}
+{% block dock %}
+<div class="dock"><div class="in">
+  {% if state == 'start' %}
+  <form method="post" style="margin:0">{% csrf_token %}<input type="hidden" name="vin" value="{{ vin }}"><button class="btn" type="submit">Start a work order</button></form>
+  {% else %}
+  <a class="btn" href="{{ checkin_url }}">Check this car in</a>
+  {% endif %}
+  <a class="btn2" href="{% url 'tech_scan' %}">Scan a different VIN</a>
+</div></div>
+{% endblock %}

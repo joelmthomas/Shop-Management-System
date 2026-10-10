@@ -1,0 +1,28 @@
+{% extends "core/tech/base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block css %}
+.job{display:block;text-decoration:none;color:var(--ink);padding:16px 18px;margin-bottom:12px;border-left:6px solid var(--navy)}
+.job:active{background:#fffdf8}
+.job .v{font-weight:700;font-size:21px}
+.job .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+.job .who{color:var(--muted);font-size:17px}
+.job .q{margin-top:8px;font-size:17px}
+.hello{display:flex;justify-content:space-between;align-items:baseline;margin:4px 2px 14px}
+.hello h1{font-size:30px;margin:0}
+.empty{padding:28px 20px;color:var(--muted);text-align:center}
+{% endblock %}
+{% block bar %}<div class="t" style="margin-right:0">PHILIPS AUTOS</div>{% endblock %}
+{% block content %}
+<div class="hello"><h1>Today's jobs</h1><span class="muted">{{ cards|length }} car{% if cards|length != 1 %}s{% endif %} in the shop</span></div>
+{% for c in cards %}
+<a class="card job" href="{{ c.url }}">
+  <div class="v">{{ c.vehicle }}</div>
+  <div class="row"><span class="chip c-{{ c.chip_class }}">{{ c.chip_label }}</span><span class="who">{{ c.who }} &middot; in shop {{ c.age }}</span></div>
+  {% if c.complaint %}<div class="q">{{ c.complaint }}</div>{% endif %}
+</a>
+{% endfor %}
+{% if not cards %}<div class="card empty">No cars in the shop right now.</div>{% endif %}
+{% endblock %}
+{% block dock %}
+<div class="dock"><div class="in"><a class="btn" href="{% url 'tech_scan' %}">Scan a VIN</a></div></div>
+{% endblock %}

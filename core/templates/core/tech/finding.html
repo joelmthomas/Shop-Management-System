@@ -1,0 +1,89 @@
+{% extends "core/tech/base.html" %}
+{% block title %}Add a finding{% endblock %}
+{% block bar %}<a class="back" href="{% url 'tech_order' ro.pk %}">&larr; Back</a><div class="t">Add a finding</div>{% endblock %}
+{% block css %}
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kind{position:relative;display:flex}
+.kind input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.kind span{flex:1;display:flex;align-items:center;justify-content:center;min-height:58px;border:2px solid #b9b3a3;border-radius:12px;background:var(--card);font-weight:700;font-size:19px}
+.kind input:checked + span{border-color:var(--red);background:#f7e3dd}
+.kind input:focus-visible + span{outline:3px solid #1a56db;outline-offset:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.cap{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cap label{cursor:pointer;min-height:64px;font-size:18px}
+#picked{margin:10px 2px 0;font-weight:600;color:var(--muted);min-height:24px}
+.errbox{background:#f3d3d0;color:#8a1c1c;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-weight:600}
+{% endblock %}
+{% block content %}
+<p class="muted" style="margin:0 2px 14px">{{ vehicle }}</p>
+<form method="post" enctype="multipart/form-data" id="ff">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="errbox" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+  <div class="field">
+    <div class="kinds" role="radiogroup" aria-label="Type">
+      <label class="kind"><input type="radio" name="kind" value="labor" {% if form.kind.value != 'part' %}checked{% endif %}><span>Labor / other</span></label>
+      <label class="kind"><input type="radio" name="kind" value="part" {% if form.kind.value == 'part' %}checked{% endif %}><span>Part</span></label>
+    </div>
+  </div>
+
+  <div class="field" id="part-box">
+    <div class="two">
+      <div><label class="lbl" for="f_part">Part from inventory</label><input class="inp" id="f_part" name="part_sku" list="parts" autocomplete="off" autocapitalize="characters" placeholder="Part number" value="{{ form.part_sku.value|default_if_none:'' }}">{% for e in form.part_sku.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="f_qty">How many</label><input class="inp" id="f_qty" name="quantity" inputmode="decimal" value="{{ form.quantity.value|default_if_none:'1' }}">{% for e in form.quantity.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    </div>
+    <datalist id="parts">{% for p in parts %}<option value="{{ p.sku }}">{{ p.label }}</option>{% endfor %}</datalist>
+  </div>
+
+  <div class="field">
+    <label class="lbl" for="f_desc">What did you find?</label>
+    <textarea class="inp" id="f_desc" name="description" maxlength="200" placeholder="Front brake pads worn to the metal. Replace pads and rotors.">{{ form.description.value|default_if_none:'' }}</textarea>
+    <p class="muted" style="margin:6px 2px 0;font-size:15px">The customer reads this. Keep it plain and short.</p>
+    {% for e in form.description.errors %}<p class="err">{{ e }}</p>{% endfor %}
+  </div>
+
+  <div class="field">
+    <label class="lbl" for="f_price"><span id="price-label">Price ($)</span></label>
+    <input class="inp" id="f_price" name="unit_price" inputmode="decimal" placeholder="0.00" value="{{ form.unit_price.value|default_if_none:'' }}">
+    <p class="muted" style="margin:6px 2px 0;font-size:15px" id="price-hint">Total for this finding. Enter 0 if there is no charge.</p>
+    {% for e in form.unit_price.errors %}<p class="err">{{ e }}</p>{% endfor %}
+  </div>
+
+  <div class="field">
+    <label class="lbl">Photos and video</label>
+    <div class="cap">
+      <label class="btn2" for="cam">Take photo or video</label>
+      <label class="btn2" for="lib">Choose from phone</label>
+    </div>
+    <input type="file" id="cam" name="files" accept="image/*,video/*" capture="environment" hidden>
+    <input type="file" id="lib" name="files" accept="image/*,video/*,.heic,.heif" multiple hidden>
+    <div id="picked" aria-live="polite"></div>
+  </div>
+
+  <div class="dock"><div class="in"><button class="btn" type="submit">Save finding</button></div></div>
+</form>
+
+<script>
+(function () {
+  var form = document.getElementById('ff');
+  var partBox = document.getElementById('part-box');
+  var priceLabel = document.getElementById('price-label');
+  var priceHint = document.getElementById('price-hint');
+  function kind() { var el = form.querySelector('input[name="kind"]:checked'); return el ? el.value : 'labor'; }
+  function sync() {
+    var isPart = kind() === 'part';
+    partBox.hidden = !isPart;
+    priceLabel.textContent = isPart ? 'Price each ($), optional' : 'Price ($)';
+    priceHint.textContent = isPart ? 'Leave blank to use the price in inventory.' : 'Total for this finding. Enter 0 if there is no charge.';
+  }
+  form.addEventListener('change', function (e) { if (e.target.name === 'kind') sync(); });
+  var cam = document.getElementById('cam'), lib = document.getElementById('lib'), picked = document.getElementById('picked');
+  function count() {
+    var n = (cam.files ? cam.files.length : 0) + (lib.files ? lib.files.length : 0);
+    picked.textContent = n ? n + ' file' + (n === 1 ? '' : 's') + ' ready to save' : '';
+  }
+  cam.addEventListener('change', count); lib.addEventListener('change', count);
+  sync();
+})();
+</script>
+{% endblock %}

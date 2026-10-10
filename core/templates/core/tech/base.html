@@ -1,0 +1,59 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1b2431">
+<title>{% block title %}Tech{% endblock %} | Philips Autos</title>
+<link rel="icon" href="{% static 'core/emblem.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d2530;--red:#b3121e;--red-dark:#8c0e17;--paper:#efe9db;--card:#fbf8f1;--line:#d8d2c3;--line-soft:#e8e3d6;--muted:#5a6472;--navy:#22344a;--navy-deep:#1b2431}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Barlow',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.4;font-size:18px;-webkit-text-size-adjust:100%}
+a{color:var(--red)}
+h1,h2,.serif{font-family:'Marcellus',Georgia,serif;font-weight:400}
+.bar{background:var(--navy-deep);color:#fff;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+.bar a.back{color:#fff;text-decoration:none;font-weight:600;min-height:44px;display:inline-flex;align-items:center;padding-right:8px}
+.bar .t{font-family:'Marcellus',Georgia,serif;font-size:22px;flex:1;text-align:center;margin-right:48px}
+.bar img{height:36px;width:auto;background:var(--card);border-radius:8px;padding:3px}
+.check{height:14px;background:conic-gradient(var(--navy) 25%,var(--card) 0 50%,var(--navy) 0 75%,var(--card) 0) 0 0/14px 14px}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px calc(120px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.btn,.btn2{display:flex;align-items:center;justify-content:center;width:100%;min-height:60px;padding:0 20px;border-radius:12px;font:700 19px 'Barlow',sans-serif;cursor:pointer;text-decoration:none;text-align:center;border:0}
+.btn{background:var(--red);color:#fff}
+.btn:active{background:var(--red-dark)}
+.btn2{background:var(--card);color:var(--navy);border:2px solid var(--navy)}
+.btn[disabled],.btn2[disabled]{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,.btn2:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #1a56db;outline-offset:2px}
+.chip{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;font-size:14px;font-weight:700;white-space:nowrap}
+.c-gray{background:#e4e8e7;color:#3a4558}.c-wait{background:#f8e7b4;color:#6b4a00}.c-ok{background:#d3ecd9;color:#12602d}.c-no{background:#f3d3d0;color:#8a1c1c}.c-info{background:#d9e4f2;color:#173f6e}
+.muted{color:var(--muted)}
+.msgs{list-style:none;margin:0 0 14px;padding:0}
+.msgs li{border-radius:12px;padding:14px 16px;font-weight:600;margin-bottom:8px;font-size:17px}
+.msgs .success{background:#d3ecd9;color:#12602d}.msgs .error{background:#f3d3d0;color:#8a1c1c}.msgs .warning{background:#f8e7b4;color:#6b4a00}.msgs .info{background:#d9e4f2;color:#173f6e}
+label.lbl{display:block;font-weight:700;font-size:17px;margin:0 0 6px}
+.inp{width:100%;min-height:58px;padding:0 14px;border:2px solid #b9b3a3;border-radius:12px;font:500 19px 'Barlow',sans-serif;color:var(--ink);background:#fffdf8}
+textarea.inp{padding:12px 14px;min-height:110px}
+.err{color:#8a1c1c;font-size:16px;margin:6px 0 0;font-weight:600}
+.field{margin-bottom:18px}
+.dock{position:fixed;left:0;right:0;bottom:0;background:rgba(239,233,219,.96);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));z-index:6}
+.dock .in{max-width:760px;margin:0 auto;display:grid;gap:10px}
+{% block css %}{% endblock %}
+</style>
+</head>
+<body>
+<div class="bar">
+  {% block bar %}<a class="back" href="{% url 'tech_jobs' %}">&larr; Jobs</a><div class="t">{% block bartitle %}Tech{% endblock %}</div>{% endblock %}
+</div>
+<div class="check" aria-hidden="true"></div>
+<main class="wrap">
+  {% if messages %}<ul class="msgs" role="status">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+{% block dock %}{% endblock %}
+</body>
+</html>

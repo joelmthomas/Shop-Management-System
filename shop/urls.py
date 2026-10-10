@@ -5,7 +5,7 @@ from django.urls import path
 
 from core import views
 from core import site_views
-from core import admin_views
+from core import admin_views, tech_views
 
 
 urlpatterns = [
@@ -20,6 +20,11 @@ urlpatterns = [
     path("staff/checkin/<int:appt_id>/", admin_views.checkin, name="staff_checkin_appt"),
     path("staff/orders/", admin_views.orders, name="staff_orders"),
     path("staff/orders/<int:pk>/", admin_views.order, name="staff_order"),
+    path("tech/", tech_views.jobs, name="tech_jobs"),
+    path("tech/scan/", tech_views.scan, name="tech_scan"),
+    path("tech/vin/", tech_views.vin, name="tech_vin"),
+    path("tech/orders/<int:pk>/", tech_views.order, name="tech_order"),
+    path("tech/orders/<int:pk>/finding/", tech_views.finding, name="tech_finding"),
     path("admin/", admin.site.urls),
     path("sms/incoming/", views.twilio_incoming),
     path("e/<str:token>/", views.estimate, name="estimate"),
