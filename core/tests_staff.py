@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from .access import OWNER, STAFF, TECH, apply_role
 from .models import Appointment
 
 
@@ -23,12 +24,12 @@ class StaffTodayTests(TestCase):
     def test_anonymous_is_sent_to_login(self):
         resp = self.client.get(reverse("staff_today"))
         self.assertEqual(resp.status_code, 302)
-        self.assertIn("login", resp.url)
+        self.assertIn("signin", resp.url)
 
-    def test_non_staff_is_sent_to_login(self):
+    def test_signed_in_without_a_role_is_refused(self):
         self.client.login(username="cust", password="pw")
-        self.assertEqual(self.client.get(reverse("staff_today")).status_code, 302)
-        self.assertEqual(self.act("confirm").status_code, 302)
+        self.assertEqual(self.client.get(reverse("staff_today")).status_code, 403)
+        self.assertEqual(self.act("confirm").status_code, 403)
         self.appt.refresh_from_db()
         self.assertEqual(self.appt.status, Appointment.REQUESTED)
 
@@ -292,7 +293,8 @@ class TechScreenTests(TestCase):
     def setUp(self):
         from .models import Customer, Part, RepairOrder, Vehicle
         User = get_user_model()
-        User.objects.create_user("tech", password="pw", is_staff=True)
+        apply_role(User.objects.create_user("tech", password="pw"), TECH)
+        apply_role(User.objects.create_user("boss", password="pw"), OWNER)
         self.client.login(username="tech", password="pw")
         cust = Customer.objects.create(first_name="Jose", last_name="Alvarez", phone="+19725550143")
         self.vin = "1HGCR2F34EA000000"
@@ -330,6 +332,10 @@ class TechScreenTests(TestCase):
         from unittest import mock
         with mock.patch("core.tech_views.decode_vin", return_value={"year": 2020, "make": "Kia", "model": "Soul"}):
             resp = self.client.get(reverse("tech_vin") + "?vin=KNDJ23AU4L7000000")
+        self.assertNotContains(resp, "make=Kia")  # a tech cannot open the front desk check in
+        self.client.login(username="boss", password="pw")
+        with mock.patch("core.tech_views.decode_vin", return_value={"year": 2020, "make": "Kia", "model": "Soul"}):
+            resp = self.client.get(reverse("tech_vin") + "?vin=KNDJ23AU4L7000000")
         self.assertContains(resp, "Check this car in")
         self.assertContains(resp, "make=Kia")
 
@@ -338,6 +344,7 @@ class TechScreenTests(TestCase):
         self.assertRedirects(resp, reverse("tech_scan"), fetch_redirect_response=False)
 
     def test_check_in_form_is_prefilled_from_scan(self):
+        self.client.login(username="boss", password="pw")
         resp = self.client.get(reverse("staff_checkin") + "?vin=KNDJ23AU4L7000000&make=Kia&model=Soul")
         self.assertContains(resp, 'value="Kia"')
 
@@ -378,3 +385,141 @@ class TechScreenTests(TestCase):
         self.client.post(url, {"do": "status", "status": "complete"})
         self.ro.refresh_from_db()
         self.assertEqual(self.ro.status, "complete")
+
+
+class RoleTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        apply_role(User.objects.create_user("boss", password="pw"), OWNER)
+        for name, role in (("desk", STAFF), ("tech", TECH)):
+            apply_role(User.objects.create_user(name, password="pw"), role)
+        self.legacy = User.objects.create_user("old", password="pw", is_staff=True)
+        self.nobody = User.objects.create_user("nobody", password="pw")
+
+    def status(self, who, name):
+        self.client.logout()
+        self.client.login(username=who, password="pw")
+        return self.client.get(reverse(name)).status_code
+
+    def test_who_sees_what(self):
+        table = {
+            "boss": {"staff_today": 200, "tech_jobs": 200, "staff_users": 200},
+            "desk": {"staff_today": 200, "tech_jobs": 403, "staff_users": 403},
+            "old": {"staff_today": 200, "tech_jobs": 403, "staff_users": 403},
+            "tech": {"staff_today": 403, "tech_jobs": 200, "staff_users": 403},
+            "nobody": {"staff_today": 403, "tech_jobs": 403, "staff_users": 403},
+        }
+        for who, pages in table.items():
+            for name, want in pages.items():
+                self.assertEqual(self.status(who, name), want, f"{who} {name}")
+
+    def test_signed_out_goes_to_signin(self):
+        for name in ("staff_today", "tech_jobs", "staff_users"):
+            resp = self.client.get(reverse(name))
+            self.assertEqual(resp.status_code, 302)
+            self.assertIn("/signin/", resp.url)
+
+    def test_sign_in_lands_on_own_screen(self):
+        for who, dest in (("desk", "staff_today"), ("tech", "tech_jobs"), ("boss", "staff_today")):
+            self.client.logout()
+            resp = self.client.post(reverse("role_login"), {"username": who, "password": "pw"})
+            self.assertEqual(resp.status_code, 302, who)
+            follow = self.client.get(resp.url)
+            self.assertEqual(follow.status_code, 302, who)
+            self.assertTrue(follow.url.endswith(reverse(dest)), who)
+
+    def test_role_less_user_does_not_loop_on_signin_page(self):
+        self.client.login(username="nobody", password="pw")
+        self.assertEqual(self.client.get(reverse("role_login")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("role_home")).status_code, 403)
+
+    def test_apply_role_is_exclusive(self):
+        u = self.legacy
+        apply_role(u, TECH)
+        apply_role(u, STAFF)
+        self.assertEqual(list(u.groups.values_list("name", flat=True)), ["Staff"])
+        self.assertFalse(u.is_staff)
+        self.assertFalse(u.is_superuser)
+
+
+class UsersPageTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.User = User
+        self.owner = User.objects.create_user("boss", password="pw")
+        apply_role(self.owner, OWNER)
+        self.client.login(username="boss", password="pw")
+        self.url = reverse("staff_users")
+
+    def post(self, **data):
+        return self.client.post(self.url, data)
+
+    def test_page_loads(self):
+        self.assertContains(self.client.get(self.url), "Add a person")
+
+    def test_add_user_with_role(self):
+        resp = self.post(do="add", username="Mike", first_name="Mike", last_name="T", role=TECH,
+                         password="Sturdy-Pass-4821", password2="Sturdy-Pass-4821")
+        self.assertRedirects(resp, self.url, fetch_redirect_response=False)
+        u = self.User.objects.get(username="Mike")
+        self.assertEqual(list(u.groups.values_list("name", flat=True)), ["Tech"])
+        self.assertTrue(u.check_password("Sturdy-Pass-4821"))
+        self.assertFalse(u.is_staff)
+
+    def test_add_rejects_duplicate_name_and_mismatch(self):
+        resp = self.post(do="add", username="BOSS", role=TECH, password="Sturdy-Pass-4821", password2="Sturdy-Pass-4821")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.User.objects.count(), 1)
+        resp = self.post(do="add", username="new", role=TECH, password="Sturdy-Pass-4821", password2="different")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.User.objects.count(), 1)
+
+    def test_change_role(self):
+        u = self.User.objects.create_user("desk", password="pw")
+        apply_role(u, STAFF)
+        self.post(do="role", user_id=u.pk, role=TECH)
+        u.refresh_from_db()
+        self.assertEqual(list(u.groups.values_list("name", flat=True)), ["Tech"])
+        self.post(do="role", user_id=u.pk, role="bogus")
+        self.assertEqual(list(u.groups.values_list("name", flat=True)), ["Tech"])
+
+    def test_owner_cannot_demote_or_switch_off_self(self):
+        self.post(do="role", user_id=self.owner.pk, role=TECH)
+        self.post(do="active", user_id=self.owner.pk, active="0")
+        self.owner.refresh_from_db()
+        self.assertTrue(self.owner.is_superuser)
+        self.assertTrue(self.owner.is_active)
+
+    def test_last_owner_is_protected_but_another_owner_can_demote(self):
+        second = self.User.objects.create_user("two", password="pw")
+        apply_role(second, OWNER)
+        self.post(do="role", user_id=second.pk, role=STAFF)
+        second.refresh_from_db()
+        self.assertFalse(second.is_superuser)
+
+    def test_turn_off_blocks_sign_in(self):
+        u = self.User.objects.create_user("desk", password="pw")
+        apply_role(u, STAFF)
+        self.post(do="active", user_id=u.pk, active="0")
+        u.refresh_from_db()
+        self.assertFalse(u.is_active)
+        self.client.logout()
+        self.assertFalse(self.client.login(username="desk", password="pw"))
+
+    def test_reset_password(self):
+        u = self.User.objects.create_user("desk", password="pw")
+        apply_role(u, STAFF)
+        self.post(do="password", user_id=u.pk, password="Sturdy-Pass-4821", password2="Sturdy-Pass-4821")
+        u.refresh_from_db()
+        self.assertTrue(u.check_password("Sturdy-Pass-4821"))
+        self.post(do="password", user_id=u.pk, password="Another-Pass-9937", password2="nope")
+        u.refresh_from_db()
+        self.assertTrue(u.check_password("Sturdy-Pass-4821"))
+
+    def test_staff_cannot_use_page(self):
+        u = self.User.objects.create_user("desk", password="pw")
+        apply_role(u, STAFF)
+        self.client.logout()
+        self.client.login(username="desk", password="pw")
+        self.assertEqual(self.post(do="add", username="x", role=OWNER, password="Sturdy-Pass-4821", password2="Sturdy-Pass-4821").status_code, 403)
+        self.assertFalse(self.User.objects.filter(username="x").exists())

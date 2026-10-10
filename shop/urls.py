@@ -5,7 +5,7 @@ from django.urls import path
 
 from core import views
 from core import site_views
-from core import admin_views, tech_views
+from core import admin_views, auth_views, tech_views, user_views
 
 
 urlpatterns = [
@@ -13,6 +13,12 @@ urlpatterns = [
     path("book/", site_views.book, name="book"),
     path("book/slots/", site_views.book_slots, name="book_slots"),
     path("book/thanks/", site_views.book_thanks, name="book_thanks"),
+    path("signin/", auth_views.RoleLoginView.as_view(), name="role_login"),
+    path("signout/", auth_views.RoleLogoutView.as_view(), name="role_logout"),
+    path("signin/", auth_views.RoleLoginView.as_view(), name="role_login"),
+    path("signout/", auth_views.RoleLogoutView.as_view(), name="role_logout"),
+    path("go/", auth_views.go, name="role_home"),
+    path("staff/users/", user_views.users, name="staff_users"),
     path("staff/", admin_views.today, name="staff_today"),
     path("staff/appointments/", admin_views.appointments, name="staff_appointments"),
     path("staff/appointments/<int:pk>/<str:action>/", admin_views.appointment_action, name="staff_appt_action"),

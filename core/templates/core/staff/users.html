@@ -1,0 +1,98 @@
+{% extends "core/staff/base.html" %}
+{% block title %}Users{% endblock %}
+{% block css %}
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}}
+.panel{padding:20px 22px;margin-bottom:18px}
+.panel h2{font-size:23px;margin:0 0 14px}
+.person{padding:16px 20px;border-bottom:1px solid var(--line-soft)}
+.person:last-child{border-bottom:0}
+.person .nm{font-weight:700;font-size:18px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.person .un{color:var(--muted);font-size:15px;margin-top:2px}
+.person .ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.person form{margin:0;display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:100%}
+.off{opacity:.65}
+label.lbl{display:block;font-weight:600;font-size:14px;margin-bottom:5px}
+.inp{width:100%;min-height:44px;padding:0 12px;border:1.5px solid #b9b3a3;border-radius:8px;font:400 16px 'Barlow',sans-serif;color:var(--ink);background:#fffdf8}
+select.inp{width:auto;min-width:0;max-width:100%}
+.err{color:#8a1c1c;font-size:14px;margin:5px 0 0;font-weight:500}
+.field{margin-bottom:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.two{grid-template-columns:minmax(0,1fr)}}
+details.pw{width:100%}
+details.pw summary{cursor:pointer;color:var(--red);font-weight:600;font-size:15px;min-height:32px;display:flex;align-items:center}
+details.pw form{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:8px;align-items:end}
+@media (max-width:640px){details.pw form{grid-template-columns:minmax(0,1fr)}}
+.roles{font-size:15px;color:var(--muted);margin:0}
+.roles li{margin-bottom:6px}
+.roles b{color:var(--ink)}
+.c-owner{background:#e6dcf3;color:#4a2a7a}
+{% endblock %}
+{% block content %}
+<div class="top"><h1>Users</h1></div>
+<div class="layout">
+
+<section class="card" aria-labelledby="h-people">
+  <h2 id="h-people" style="font-size:23px;margin:0;padding:16px 20px;border-bottom:1px solid var(--line)">People</h2>
+  {% for r in rows %}
+  <div class="person {% if not r.obj.is_active %}off{% endif %}">
+    <div class="nm">{{ r.name }}
+      <span class="chip {% if r.role == 'owner' %}c-owner{% elif r.role == 'staff' %}c-info{% elif r.role == 'tech' %}c-ok{% else %}c-gray{% endif %}">{{ r.role_label }}</span>
+      {% if not r.obj.is_active %}<span class="chip c-no">Turned off</span>{% endif %}
+      {% if r.me %}<span class="chip c-gray">You</span>{% endif %}
+    </div>
+    <div class="un">{{ r.obj.username }} &middot; last signed in {{ r.last }}</div>
+    <div class="ctl">
+      <form method="post">{% csrf_token %}<input type="hidden" name="do" value="role"><input type="hidden" name="user_id" value="{{ r.obj.pk }}">
+        <select class="inp" name="role" aria-label="Role for {{ r.name }}">{% for value, label in roles %}<option value="{{ value }}" {% if value == r.role %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <button class="btn2 sm" type="submit">Set role</button>
+      </form>
+      {% if not r.me %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="do" value="active"><input type="hidden" name="user_id" value="{{ r.obj.pk }}"><input type="hidden" name="active" value="{% if r.obj.is_active %}0{% else %}1{% endif %}"><button class="btn2 sm" type="submit">{% if r.obj.is_active %}Turn off{% else %}Turn on{% endif %}</button></form>
+      {% endif %}
+    </div>
+    <div class="ctl">
+      <details class="pw"><summary>Set a new password</summary>
+        <form method="post">{% csrf_token %}<input type="hidden" name="do" value="password"><input type="hidden" name="user_id" value="{{ r.obj.pk }}">
+          <div><label class="lbl" for="pw-{{ r.obj.pk }}">New password</label><input class="inp" id="pw-{{ r.obj.pk }}" type="password" name="password" autocomplete="new-password"></div>
+          <div><label class="lbl" for="pw2-{{ r.obj.pk }}">Again</label><input class="inp" id="pw2-{{ r.obj.pk }}" type="password" name="password2" autocomplete="new-password"></div>
+          <button class="btn2 sm" type="submit" style="min-height:44px">Save</button>
+        </form>
+      </details>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<div>
+  <section class="card panel" aria-labelledby="h-add">
+    <h2 id="h-add">Add a person</h2>
+    <form method="post" novalidate>
+      {% csrf_token %}<input type="hidden" name="do" value="add">
+      <div class="field"><label class="lbl" for="n_user">Username</label><input class="inp" id="n_user" name="username" autocapitalize="none" autocorrect="off" autocomplete="off" value="{{ new.username }}">{% for e in form.username.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div class="two">
+        <div class="field"><label class="lbl" for="n_first">First name</label><input class="inp" id="n_first" name="first_name" autocomplete="off" value="{{ new.first_name }}"></div>
+        <div class="field"><label class="lbl" for="n_last">Last name</label><input class="inp" id="n_last" name="last_name" autocomplete="off" value="{{ new.last_name }}"></div>
+      </div>
+      <div class="field"><label class="lbl" for="n_role">What can they see?</label>
+        <select class="inp" style="width:100%" id="n_role" name="role">{% for value, label in roles %}<option value="{{ value }}" {% if value == new.role %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        {% for e in form.role.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div class="field"><label class="lbl" for="n_pw">Password</label><input class="inp" id="n_pw" type="password" name="password" autocomplete="new-password">{% for e in form.password.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div class="field"><label class="lbl" for="n_pw2">Password again</label><input class="inp" id="n_pw2" type="password" name="password2" autocomplete="new-password">{% for e in form.password2.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <button class="btn" type="submit">Add person</button>
+    </form>
+  </section>
+
+  <section class="card panel" aria-labelledby="h-roles">
+    <h2 id="h-roles">What each role sees</h2>
+    <ul class="roles" style="padding-left:18px">
+      <li><b>Everything (owner):</b> all screens, this Users page, and the Django admin.</li>
+      <li><b>Staff:</b> Today, Check in, Appointments and Repair orders.</li>
+      <li><b>Tech:</b> the phone and iPad screens at /tech/ only.</li>
+    </ul>
+    <p class="roles" style="margin-top:10px">Everyone signs in at <b>/signin/</b> and lands on their own screen.</p>
+  </section>
+</div>
+
+</div>
+{% endblock %}

@@ -8,7 +8,6 @@ from decimal import Decimal
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
@@ -16,6 +15,7 @@ from django.views.decorators.http import require_http_methods
 from .admin_views import (
     LA, RS, LineForm, age_label, change_status, money, pretty_phone, report_uploads, save_uploads, totals,
 )
+from .access import tech_screen
 from .models import LineItem, Part, RepairOrder, Vehicle
 
 try:
@@ -39,7 +39,7 @@ def stage(ro, lines):
     return ("ok", "Ready for pickup")
 
 
-@staff_member_required
+@tech_screen
 def jobs(request):
     qs = (
         RepairOrder.objects.exclude(status=RS.PAID)
@@ -65,7 +65,7 @@ def jobs(request):
     return render(request, "core/tech/jobs.html", {"cards": cards})
 
 
-@staff_member_required
+@tech_screen
 def scan(request):
     return render(request, "core/tech/scan.html", {})
 
@@ -74,7 +74,7 @@ def clean_vin(raw):
     return re.sub(r"[^A-Za-z0-9]", "", raw or "").upper()
 
 
-@staff_member_required
+@tech_screen
 @require_http_methods(["GET", "POST"])
 def vin(request):
     """After a VIN is scanned or typed: open the car's work order, start one, or send it to check in."""
@@ -114,10 +114,11 @@ def vin(request):
         "state": "unknown", "vin": code,
         "vehicle": " ".join(str(info[k]) for k in ("year", "make", "model") if info and info.get(k)),
         "checkin_url": reverse("staff_checkin") + "?" + urlencode(query),
+        "can_checkin": request.role in ("staff", "owner"),
     })
 
 
-@staff_member_required
+@tech_screen
 def order(request, pk):
     ro = get_object_or_404(RepairOrder.objects.select_related("vehicle__customer"), pk=pk)
     here = reverse("tech_order", args=[ro.pk])
@@ -165,10 +166,11 @@ def order(request, pk):
         "rows": rows, "general": general, "total": money(total), "has_lines": bool(lines),
         "can_start": ro.status == RS.APPROVED,
         "can_finish": ro.status == RS.IN_PROGRESS,
+        "can_office": request.role in ("staff", "owner"),
     })
 
 
-@staff_member_required
+@tech_screen
 def finding(request, pk):
     ro = get_object_or_404(RepairOrder.objects.select_related("vehicle__customer"), pk=pk)
     form = None

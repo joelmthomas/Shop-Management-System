@@ -16,7 +16,7 @@
   {% else %}
   <div class="v">{% if vehicle %}{{ vehicle }}{% else %}New car{% endif %}</div>
   <div class="code">{{ vin }}</div>
-  <p>This VIN is not in the system yet. Check the car in first so it has a customer and a work order.{% if vehicle %} The year, make and model came from the VIN.{% endif %}</p>
+  <p>This VIN is not in the system yet. The front desk needs to check it in first so it has a customer and a work order.{% if vehicle %} The year, make and model came from the VIN.{% endif %}</p>
   {% endif %}
 </div>
 {% endblock %}
@@ -25,7 +25,7 @@
   {% if state == 'start' %}
   <form method="post" style="margin:0">{% csrf_token %}<input type="hidden" name="vin" value="{{ vin }}"><button class="btn" type="submit">Start a work order</button></form>
   {% else %}
-  <a class="btn" href="{{ checkin_url }}">Check this car in</a>
+  {% if can_checkin %}<a class="btn" href="{{ checkin_url }}">Check this car in</a>{% else %}<div class="card" style="padding:14px 16px;font-weight:600">Not in the system yet. Ask the front desk to check this car in, then scan again.</div>{% endif %}
   {% endif %}
   <a class="btn2" href="{% url 'tech_scan' %}">Scan a different VIN</a>
 </div></div>

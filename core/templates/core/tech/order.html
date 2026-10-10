@@ -48,7 +48,7 @@ h2.sec small{font:600 16px 'Barlow',sans-serif;color:var(--muted)}
   <label class="btn2" for="snap">Add photos of the whole car{% if general %} ({{ general }} so far){% endif %}</label>
   <input type="file" id="snap" name="files" accept="image/*,video/*,.heic,.heif" multiple hidden onchange="document.getElementById('snapform').submit()">
 </form>
-<p class="muted" style="margin:14px 2px 0;font-size:16px">Office view: <a href="{% url 'staff_order' ro.pk %}">open this order in the shop screen</a></p>
+{% if can_office %}<p class="muted" style="margin:14px 2px 0;font-size:16px">Office view: <a href="{% url 'staff_order' ro.pk %}">open this order in the shop screen</a></p>{% endif %}
 {% endblock %}
 {% block dock %}
 <div class="dock"><div class="in">

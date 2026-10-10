@@ -11,7 +11,7 @@
 .hello h1{font-size:30px;margin:0}
 .empty{padding:28px 20px;color:var(--muted);text-align:center}
 {% endblock %}
-{% block bar %}<div class="t" style="margin-right:0">PHILIPS AUTOS</div>{% endblock %}
+{% block bar %}<div class="t" style="margin-right:0;text-align:left">PHILIPS AUTOS</div><form method="post" action="{% url 'role_logout' %}" style="margin:0">{% csrf_token %}<button type="submit" style="background:none;border:0;color:#fff;font:600 16px 'Barlow',sans-serif;text-decoration:underline;min-height:44px;cursor:pointer">Sign out</button></form>{% endblock %}
 {% block content %}
 <div class="hello"><h1>Today's jobs</h1><span class="muted">{{ cards|length }} car{% if cards|length != 1 %}s{% endif %} in the shop</span></div>
 {% for c in cards %}

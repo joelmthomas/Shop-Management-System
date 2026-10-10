@@ -1,0 +1,8 @@
+{% extends "core/staff/plain.html" %}
+{% block title %}No access{% endblock %}
+{% block content %}
+<h1>No access</h1>
+<p>{% if role %}Your account does not have access to this screen.{% else %}This account is not set up for any screens yet. Ask the owner to give it a role.{% endif %}</p>
+{% if home %}<a class="btn" href="{{ home }}">Go to my screen</a>{% endif %}
+<form method="post" action="{% url 'role_logout' %}">{% csrf_token %}<button class="btn2" type="submit">Sign out</button></form>
+{% endblock %}

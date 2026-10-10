@@ -12,7 +12,6 @@ from urllib.parse import urlencode
 
 from django import forms
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
@@ -21,6 +20,7 @@ from django.urls import NoReverseMatch, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
+from .access import staff_screen
 from .media import prepare_upload
 from .models import Appointment, Attachment, Customer, LineItem, Part, RepairOrder, Vehicle
 from .site_views import SHOP_TZ, label_for, normalize_phone, shop_now
@@ -106,7 +106,7 @@ def shop_tiles():
     }
 
 
-@staff_member_required
+@staff_screen
 def today(request):
     now_date = shop_now().date()
     try:
@@ -158,7 +158,7 @@ def today(request):
     return render(request, "core/staff/today.html", context)
 
 
-@staff_member_required
+@staff_screen
 @require_POST
 def appointment_action(request, pk, action):
     spec = ACTIONS.get(action)
@@ -189,7 +189,7 @@ TABS = [
 ]
 
 
-@staff_member_required
+@staff_screen
 def appointments(request):
     now_date = shop_now().date()
     show = request.GET.get("show", "upcoming")
@@ -299,7 +299,7 @@ def find_vehicle(customer, d):
     return None
 
 
-@staff_member_required
+@staff_screen
 def checkin(request, appt_id=None):
     appt = get_object_or_404(Appointment, pk=appt_id) if appt_id else None
 
@@ -445,7 +445,7 @@ def order_card(ro):
     }
 
 
-@staff_member_required
+@staff_screen
 def orders(request):
     show = request.GET.get("show", "open")
     qs = R.objects.select_related("vehicle__customer").prefetch_related("line_items")
@@ -544,7 +544,7 @@ def change_status(request, ro, new):
     return True
 
 
-@staff_member_required
+@staff_screen
 def order(request, pk):
     ro = get_object_or_404(R.objects.select_related("vehicle__customer"), pk=pk)
     here = reverse("staff_order", args=[ro.pk])

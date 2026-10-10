@@ -62,11 +62,12 @@ h1,h2,.serif{font-family:'Marcellus',Georgia,serif;font-weight:400;letter-spacin
     <a class="nav {% if page == 'checkin' %}on{% endif %}" href="{% url 'staff_checkin' %}">Check in</a>
     <a class="nav {% if page == 'orders' %}on{% endif %}" href="{% url 'staff_orders' %}">Repair orders</a>
     <a class="nav {% if page == 'appointments' %}on{% endif %}" href="{% url 'staff_appointments' %}">Appointments</a>
+    {% if request.role == 'owner' %}<a class="nav {% if page == 'users' %}on{% endif %}" href="{% url 'staff_users' %}">Users</a>{% endif %}
     <a class="nav" href="{% url 'home' %}" target="_blank" rel="noopener">View website</a>
     <div class="foot">
       Signed in as {{ user.get_username }}
-      <div style="margin-top:6px"><a href="{% url 'admin:index' %}" style="color:#9aa6bb;font-size:13px">Database admin</a></div>
-      <form method="post" action="{% url 'admin:logout' %}" style="margin-top:8px">{% csrf_token %}<button class="nav" type="submit" style="padding:0;min-height:32px;color:#fff;text-decoration:underline;background:none">Sign out</button></form>
+      {% if request.role == 'owner' %}<div style="margin-top:6px"><a href="{% url 'admin:index' %}" style="color:#9aa6bb;font-size:13px">Database admin</a></div>{% endif %}
+      <form method="post" action="{% url 'role_logout' %}" style="margin-top:8px">{% csrf_token %}<button class="nav" type="submit" style="padding:0;min-height:32px;color:#fff;text-decoration:underline;background:none">Sign out</button></form>
     </div>
   </aside>
   <main class="main">
