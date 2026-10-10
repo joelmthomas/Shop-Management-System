@@ -1,0 +1,25 @@
+{% extends "core/site/base.html" %}
+{% block title %}Request received | Philips Autos{% endblock %}
+{% block css %}
+.done{padding:64px 0}
+.done h1{font-size:46px;line-height:1.05;margin:0 0 16px}
+.done .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;max-width:560px;margin:24px 0}
+.done dl{display:grid;grid-template-columns:100px 1fr;gap:10px 12px;margin:0;font-size:17px}
+.done dt{color:var(--muted)}
+.done dd{margin:0;font-weight:600}
+{% endblock %}
+{% block content %}
+<div class="done"><div class="wrap">
+  <h1>Thanks, {{ appt.name }}. We got your request.</h1>
+  <p style="font-size:19px;max-width:36em">We will confirm your visit by {% if appt.sms_consent %}text or {% endif %}phone. If anything changes, call us at <a href="tel:+19722857760">(972) 285-7760</a>.</p>
+  <div class="card">
+    <dl>
+      <dt>Service</dt><dd>{{ appt.get_service_display }}</dd>
+      <dt>When</dt><dd>{{ appt.date|date:"l, F j" }} at {{ time_label }}</dd>
+      <dt>Car</dt><dd>{{ appt.vehicle }}</dd>
+      <dt>Where</dt><dd>211 N. Galloway Ave., Mesquite, TX 75149</dd>
+    </dl>
+  </div>
+  <a class="btn" href="{% url 'home' %}">Back to the home page</a>
+</div></div>
+{% endblock %}

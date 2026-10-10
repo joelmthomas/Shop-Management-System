@@ -1,0 +1,33 @@
+{% extends "core/site/base.html" %}
+{% block title %}Text Messaging Terms | Philips Autos{% endblock %}
+{% block css %}
+.doc{padding:48px 0 72px}.doc .wrap{max-width:760px}
+.doc h1{font-size:42px;line-height:1.1;margin:0 0 8px}
+.doc h2{font-size:26px;margin:32px 0 8px}
+.doc p,.doc li{font-size:17px;color:var(--body)}
+.doc .meta{color:var(--muted);font-size:15px}
+{% endblock %}
+{% block content %}
+<div class="doc"><div class="wrap">
+<h1>Text Messaging Terms</h1>
+<p class="meta">Philips Autos customer text messages. Effective October 10, 2026.</p>
+
+<h2>What you are signing up for</h2>
+<p>When you check the box on our booking form or give us your number at our shop and agree to receive texts, Philips Autos will send text messages about your service: appointment confirmations and reminders, repair estimates with photos and video, status updates, and invoices and payment links. Consent to texts is not a condition of buying anything from us.</p>
+
+<h2>How often</h2>
+<p>Message frequency varies with your visit. Most customers receive a few messages per visit.</p>
+
+<h2>Cost</h2>
+<p>Message and data rates may apply, depending on your mobile plan.</p>
+
+<h2>Stop and help</h2>
+<p>Reply STOP at any time to stop receiving texts. You will get one message confirming you are unsubscribed. Reply START to subscribe again. Reply HELP for help, or call us at (972) 285-7760 or email philipsautos@hotmail.com.</p>
+
+<h2>Carriers</h2>
+<p>Carriers are not liable for delayed or undelivered messages.</p>
+
+<h2>Privacy</h2>
+<p>We do not share your mobile number or text-messaging consent with third parties or affiliates for marketing or promotional purposes. See our <a href="{% url 'privacy' %}">Privacy Policy</a>.</p>
+</div></div>
+{% endblock %}
