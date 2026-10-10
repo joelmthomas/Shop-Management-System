@@ -175,3 +175,36 @@ class RepairOrderAdmin(ModelAdmin):
 class MessageAdmin(ModelAdmin):
     list_display = ("created_at", "direction", "phone", "customer", "body")
     list_filter = ("direction",)
+
+# ---- ADD THIS TO THE BOTTOM OF core/admin.py ----
+# If your admin.py already has these imports at the top, you don't need to repeat them.
+from django.contrib import admin
+from unfold.admin import ModelAdmin
+
+from .models import Appointment
+
+
+@admin.register(Appointment)
+class AppointmentAdmin(ModelAdmin):
+    list_display = ("when", "name", "phone", "service", "vehicle", "status", "created_at")
+    list_filter = ("status", "service", "date")
+    search_fields = ("name", "phone", "vehicle", "vin")
+    date_hierarchy = "date"
+    ordering = ("date", "time")
+    actions = ["mark_confirmed", "mark_cancelled", "mark_no_show"]
+
+    @admin.display(description="When", ordering="date")
+    def when(self, obj):
+        return f"{obj.date:%a %b %d} at {obj.time:%I:%M %p}".replace(" 0", " ")
+
+    @admin.action(description="Mark selected as confirmed")
+    def mark_confirmed(self, request, queryset):
+        queryset.update(status=Appointment.CONFIRMED)
+
+    @admin.action(description="Mark selected as cancelled")
+    def mark_cancelled(self, request, queryset):
+        queryset.update(status=Appointment.CANCELLED)
+
+    @admin.action(description="Mark selected as no-show")
+    def mark_no_show(self, request, queryset):
+        queryset.update(status=Appointment.NO_SHOW)

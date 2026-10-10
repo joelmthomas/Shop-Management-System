@@ -296,3 +296,54 @@ class Attachment(models.Model):
 
     def __str__(self):
         return self.caption or self.file.name
+
+# ---- ADD THIS TO THE BOTTOM OF core/models.py ----
+# (models is already imported at the top of that file)
+
+
+class Appointment(models.Model):
+    """A visit booked on the public website. It stands alone for now; at check-in
+    the front desk turns it into a Customer, a Vehicle and a RepairOrder."""
+
+    MECHANICAL, MAINTENANCE, BODY, TIRES, DETAIL, DIAGNOSIS = (
+        "mechanical", "maintenance", "body", "tires", "detail", "diagnosis",
+    )
+    SERVICE_CHOICES = [
+        (MECHANICAL, "Mechanical repair"),
+        (MAINTENANCE, "Maintenance"),
+        (BODY, "Body work"),
+        (TIRES, "Tires"),
+        (DETAIL, "Detailing / hand wash"),
+        (DIAGNOSIS, "Not sure, need a diagnosis"),
+    ]
+
+    REQUESTED, CONFIRMED, CHECKED_IN, COMPLETED, CANCELLED, NO_SHOW = (
+        "requested", "confirmed", "checked_in", "completed", "cancelled", "no_show",
+    )
+    STATUS_CHOICES = [
+        (REQUESTED, "Requested"),
+        (CONFIRMED, "Confirmed"),
+        (CHECKED_IN, "Checked in"),
+        (COMPLETED, "Completed"),
+        (CANCELLED, "Cancelled"),
+        (NO_SHOW, "No-show"),
+    ]
+
+    service = models.CharField(max_length=20, choices=SERVICE_CHOICES)
+    date = models.DateField()
+    time = models.TimeField()
+    name = models.CharField(max_length=120)
+    phone = models.CharField(max_length=20, help_text="Stored like +19725550100")
+    vehicle = models.CharField(max_length=120, help_text="Year, make, model")
+    vin = models.CharField("VIN", max_length=17, blank=True)
+    notes = models.TextField("What's going on with the car", blank=True)
+    sms_consent = models.BooleanField("OK to text", default=False)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=REQUESTED)
+    internal_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["date", "time"]
+
+    def __str__(self):
+        return f"{self.name} - {self.date} {self.time:%H:%M}"

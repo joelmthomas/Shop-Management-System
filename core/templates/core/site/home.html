@@ -1,0 +1,98 @@
+{% extends "core/site/base.html" %}
+{% load static %}
+{% block css %}
+.hero{background:var(--card);text-align:center;padding:24px 0 36px}
+.emblem-stage{height:453px;display:flex;justify-content:center;overflow:hidden;margin:0 auto 8px}
+.emblem{position:relative;width:394px;height:302px;flex:none;transform:scale(1.5);transform-origin:top center}
+.emblem .base{position:absolute;left:0;top:0;width:394px;height:302px;clip-path:polygon(139px 0,256px 0,256px 216px,394px 216px,394px 302px,0 302px,0 216px,139px 216px)}
+.emblem .fs{position:absolute;top:0;height:216px;width:6px;overflow:hidden;animation:fw 2.6s ease-in-out infinite}
+.emblem .fs img{position:absolute;top:0;width:394px;height:302px;max-width:none}
+@keyframes fw{0%,100%{transform:translateY(calc(var(--a) * -1px));filter:brightness(.9)}50%{transform:translateY(calc(var(--a) * 1px));filter:brightness(1.08)}}
+@media (prefers-reduced-motion:reduce){.emblem .fs{animation:none}}
+@media (max-width:640px){.emblem-stage{height:262px}.emblem{transform:scale(.85)}}
+.hero h1{font-size:46px;line-height:1.1;margin:0 0 8px}
+.hero p.tag{font-size:20px;color:var(--body);margin:0 0 20px}
+.hero .actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.hero .cue{margin-top:22px;font-size:14px;letter-spacing:.16em;color:var(--muted)}
+section.block{padding:64px 0}
+section.block h2{font-size:38px;margin:0 0 28px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:32px}
+.steps .n{font-family:'Marcellus',Georgia,serif;font-size:46px;color:var(--gold);line-height:1}
+.steps h3{font-size:21px;margin:8px 0 6px}
+.steps p{margin:0;color:#d5dbe3;font-size:17px}
+.navy{background:var(--navy);color:#f4efe3}
+.navy h2,.navy h3{color:#f4efe3}
+.steel{background:var(--steel);border-top:1px solid var(--line)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px}
+.card h3{font-size:22px;margin:0 0 6px}
+.card p{margin:0 0 16px;color:var(--body);font-size:17px}
+.card a{font-weight:600;text-decoration:none}
+.visit{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:40px;align-items:start}
+dl.info{display:grid;grid-template-columns:100px 1fr;gap:14px 16px;font-size:18px;margin:0 0 28px}
+dl.info dt{color:var(--muted);font-weight:600}
+dl.info dd{margin:0}
+@media (max-width:640px){.hero h1{font-size:36px}section.block h2{font-size:32px}}
+{% endblock %}
+{% block brandmark %}<span><span class="name">PHILIPS AUTOS</span></span>{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="emblem-stage">
+    <div class="emblem" role="img" aria-label="Philips Autos emblem: red shield with PA, gold crown and checkered flags">
+      <img class="base" src="{% static 'core/logo.png' %}" alt="">
+      {% for s in strips %}<div class="fs" style="left:{{ s.x }}px;--a:{{ s.amp }};animation-delay:-{{ s.delay }}s"><img src="{% static 'core/logo.png' %}" alt="" style="left:-{{ s.x }}px"></div>{% endfor %}
+    </div>
+  </div>
+  <div class="wrap">
+    <h1>Your dealership alternative</h1>
+    <p class="tag">Sales, service &amp; autobody &middot; Mesquite, TX</p>
+    <div class="actions">
+      <a class="btn" href="{% url 'book' %}">Book a visit</a>
+      <a class="btn btn-outline" href="tel:+19722857760">Call (972) 285-7760</a>
+    </div>
+    <div class="cue" aria-hidden="true">SCROLL FOR MORE &darr;</div>
+  </div>
+</section>
+<div class="check" aria-hidden="true"></div>
+
+<section class="block navy">
+  <div class="wrap">
+    <h2>How a visit works</h2>
+    <div class="steps">
+      <div><div class="n">1</div><h3>Book online or call</h3><p>Pick a time that works for you. We confirm by text or phone.</p></div>
+      <div><div class="n">2</div><h3>We inspect and send photos</h3><p>Photos and video of anything we find land on your phone, one repair at a time.</p></div>
+      <div><div class="n">3</div><h3>You approve, we fix</h3><p>Approve or decline each repair from the text link. You only pay for the work you approve.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="services">
+  <div class="wrap">
+    <h2>What we do</h2>
+    <div class="cards">
+      {% for key, name, blurb in services %}
+      <div class="card"><h3>{{ name }}</h3><p>{{ blurb }}</p><a href="{% url 'book' %}?service={{ key }}">Book this &rarr;</a></div>
+      {% endfor %}
+      <div class="card"><h3>Cars for sale &amp; trade-ins</h3><p>Ask about what is on the lot, or trade yours in.</p><a href="tel:+19722857760">Call (972) 285-7760 &rarr;</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="block steel" id="visit">
+  <div class="wrap">
+    <div class="visit">
+      <div>
+        <h2>Visit us</h2>
+        <dl class="info">
+          <dt>Address</dt><dd>211 N. Galloway Ave.<br>Mesquite, TX 75149</dd>
+          <dt>Phone</dt><dd><a href="tel:+19722857760">(972) 285-7760</a></dd>
+          <dt>Email</dt><dd><a href="mailto:philipsautos@hotmail.com">philipsautos@hotmail.com</a></dd>
+          <dt>Hours</dt><dd>Mon&ndash;Fri 9am&ndash;6pm<br>Sat 9am&ndash;2pm<br>Closed Sunday</dd>
+        </dl>
+        <a class="btn" href="{% url 'book' %}">Book a visit</a>
+        <a class="btn btn-outline" style="margin-left:8px" href="https://www.google.com/maps/search/?api=1&query=211+N+Galloway+Ave+Mesquite+TX+75149" target="_blank" rel="noopener">Get directions</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "core/site/base.html" %}
+{% block title %}Book a visit | Philips Autos{% endblock %}
+{% block css %}
+.page{padding:40px 0 64px}
+.page h1{font-size:46px;line-height:1.05;margin:0 0 28px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}.page h1{font-size:38px}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:20px}
+.panel h2{font-size:26px;margin:0 0 16px}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.choices{grid-template-columns:minmax(0,1fr)}}
+.choice{position:relative;display:flex}
+.choice input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer;margin:0}
+.choice span{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;min-height:52px;padding:6px 14px;border:1.5px solid #b9c1cf;border-radius:10px;background:var(--card);font-weight:500;font-size:17px}
+.choice.left span{justify-content:flex-start;text-align:left}
+.choice input:checked + span{border-color:var(--red);background:#f7e3dd;font-weight:600}
+.choice input:focus-visible + span{outline:3px solid #1a56db;outline-offset:2px}
+.choice input:disabled + span{opacity:.45;cursor:not-allowed;text-decoration:line-through}
+.days{display:flex;flex-wrap:wrap;gap:8px}
+.days .choice{flex:1 1 84px}
+.days .choice span{flex-direction:column;min-height:66px;line-height:1.2}
+.days .choice span b{font-size:18px}
+.times{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:640px){.times{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:640px){.fields{grid-template-columns:minmax(0,1fr)}}
+label.lbl{display:block;font-weight:600;font-size:15px;margin-bottom:6px}
+.inp{width:100%;min-height:48px;padding:0 14px;border:1.5px solid #b9c1cf;border-radius:8px;font:400 17px 'Barlow',sans-serif;color:var(--ink);background:#fffdf8}
+textarea.inp{padding:12px 14px;min-height:96px}
+.err{color:#8a1c1c;font-size:15px;margin:6px 0 0;font-weight:500}
+.errbox{background:#f6d8d8;color:#8a1c1c;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-weight:500}
+.hint{color:var(--muted);font-size:15px;margin:12px 0 0}
+.consent{display:flex;gap:12px;align-items:flex-start;margin-top:16px;font-size:15px}
+.consent input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--red)}
+.summary{position:sticky;top:24px}
+@media (max-width:900px){.summary{position:static}}
+.summary dl{display:grid;grid-template-columns:80px 1fr;gap:10px 12px;margin:0 0 20px;font-size:16px}
+.summary dt{color:var(--muted)}
+.summary dd{margin:0;font-weight:600}
+.hp{position:absolute;left:-9999px;height:0;overflow:hidden}
+{% endblock %}
+{% block content %}
+<div class="page"><div class="wrap">
+<h1>Book a visit</h1>
+<form method="post" novalidate>
+{% csrf_token %}
+<div class="hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+{% if form.non_field_errors %}<div class="errbox" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+<div class="layout">
+<div>
+  <div class="panel">
+    <h2>1. What do you need?</h2>
+    <div class="choices">
+      {% for value, label in services %}
+      <label class="choice left"><input type="radio" name="service" value="{{ value }}" {% if form.service.value == value %}checked{% endif %} required><span>{{ label }}</span></label>
+      {% endfor %}
+    </div>
+    {% for e in form.service.errors %}<p class="err">{{ e }}</p>{% endfor %}
+  </div>
+
+  <div class="panel">
+    <h2>2. Pick a day and time</h2>
+    {% if days %}
+    <div class="days" role="radiogroup" aria-label="Day">
+      {% for d in days %}
+      <label class="choice"><input type="radio" name="date" value="{{ d|date:'Y-m-d' }}" {% if form.date.value|stringformat:'s' == d|date:'Y-m-d' %}checked{% endif %}><span>{{ d|date:"D" }}<b>{{ d|date:"M j" }}</b></span></label>
+      {% endfor %}
+    </div>
+    {% for e in form.date.errors %}<p class="err">{{ e }}</p>{% endfor %}
+    <div class="times" id="times" role="radiogroup" aria-label="Time" data-selected="{{ form.time.value|default_if_none:'' }}"></div>
+    <p class="hint" id="times-hint">Choose a day to see open times.</p>
+    {% for e in form.time.errors %}<p class="err">{{ e }}</p>{% endfor %}
+    {% else %}
+    <p>We are fully booked online right now. Please call <a href="tel:+19722857760">(972) 285-7760</a>.</p>
+    {% endif %}
+    <p class="hint">Open Mon&ndash;Fri 9am&ndash;6pm, Sat 9am&ndash;2pm. Times are Central.</p>
+  </div>
+
+  <div class="panel">
+    <h2>3. About you and your car</h2>
+    <div class="fields">
+      <div><label class="lbl" for="id_name">Your name</label><input class="inp" id="id_name" name="name" value="{{ form.name.value|default_if_none:'' }}" autocomplete="name" required>{% for e in form.name.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_phone">Mobile number</label><input class="inp" id="id_phone" name="phone" type="tel" inputmode="tel" placeholder="(972) 555-0100" value="{{ form.phone.value|default_if_none:'' }}" autocomplete="tel" required>{% for e in form.phone.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_vehicle">Year, make, model</label><input class="inp" id="id_vehicle" name="vehicle" placeholder="2014 Honda Accord" value="{{ form.vehicle.value|default_if_none:'' }}" required>{% for e in form.vehicle.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_vin">VIN (optional)</label><input class="inp" id="id_vin" name="vin" maxlength="17" value="{{ form.vin.value|default_if_none:'' }}" autocapitalize="characters">{% for e in form.vin.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    </div>
+    <div style="margin-top:16px"><label class="lbl" for="id_notes">What is going on with the car?</label><textarea class="inp" id="id_notes" name="notes" placeholder="Noise, warning light, when it started...">{{ form.notes.value|default_if_none:'' }}</textarea></div>
+    <label class="consent"><input type="checkbox" name="sms_consent" {% if form.sms_consent.value %}checked{% endif %}><span>Text me appointment updates and photos of what you find. Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help. See our <a href="{% url 'sms_terms' %}" target="_blank">Text Messaging Terms</a> and <a href="{% url 'privacy' %}" target="_blank">Privacy Policy</a>.</span></label>
+  </div>
+</div>
+
+<aside class="panel summary" aria-label="Your visit">
+  <h2>Your visit</h2>
+  <dl>
+    <dt>Service</dt><dd id="sum-service">Choose one</dd>
+    <dt>When</dt><dd id="sum-when">Choose a day and time</dd>
+    <dt>Where</dt><dd>211 N. Galloway Ave., Mesquite</dd>
+  </dl>
+  <button class="btn" type="submit" style="width:100%;min-height:52px;font-size:18px">Book this visit</button>
+  <p class="hint">No payment now. We confirm by text or phone.</p>
+</aside>
+</div>
+</form>
+</div></div>
+
+<script>
+(function () {
+  var timesBox = document.getElementById('times');
+  var hint = document.getElementById('times-hint');
+  var sumService = document.getElementById('sum-service');
+  var sumWhen = document.getElementById('sum-when');
+  if (!timesBox) return;
+  var wanted = timesBox.getAttribute('data-selected') || '';
+  var form = document.querySelector('form');
+
+  function selected(name) { var el = form.querySelector('input[name="' + name + '"]:checked'); return el; }
+  function labelOf(input) { return input ? input.parentNode.querySelector('span').textContent.replace(/\s+/g, ' ').trim() : ''; }
+
+  function updateSummary() {
+    var s = selected('service'), d = selected('date'), t = selected('time');
+    sumService.textContent = s ? labelOf(s) : 'Choose one';
+    if (d && t) sumWhen.textContent = labelOf(d) + ' at ' + labelOf(t);
+    else if (d) sumWhen.textContent = labelOf(d) + ', choose a time';
+    else sumWhen.textContent = 'Choose a day and time';
+  }
+
+  function renderSlots(slots) {
+    timesBox.innerHTML = '';
+    var any = false;
+    slots.forEach(function (s) {
+      var label = document.createElement('label'); label.className = 'choice';
+      var input = document.createElement('input');
+      input.type = 'radio'; input.name = 'time'; input.value = s.value; input.disabled = !s.available;
+      if (s.value === wanted && s.available) input.checked = true;
+      var span = document.createElement('span'); span.textContent = s.label;
+      label.appendChild(input); label.appendChild(span); timesBox.appendChild(label);
+      if (s.available) any = true;
+    });
+    hint.textContent = slots.length && any ? 'Choose a time.' : 'No open times that day. Try another day or call (972) 285-7760.';
+    updateSummary();
+  }
+
+  function loadSlots() {
+    var d = selected('date');
+    if (!d) return;
+    hint.textContent = 'Loading times...';
+    fetch('{% url "book_slots" %}?date=' + encodeURIComponent(d.value), { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (data) { renderSlots(data.slots); })
+      .catch(function () { timesBox.innerHTML = ''; hint.textContent = 'Could not load times. Please call (972) 285-7760.'; });
+  }
+
+  form.addEventListener('change', function (e) {
+    if (e.target.name === 'date') { wanted = ''; loadSlots(); }
+    updateSummary();
+  });
+  if (selected('date')) loadSlots(); else updateSummary();
+})();
+</script>
+{% endblock %}
