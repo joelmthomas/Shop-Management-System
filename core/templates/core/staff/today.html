@@ -35,7 +35,15 @@
     <a class="btn2 sm" href="?d={{ prev_day }}" aria-label="Previous day">&larr; Prev</a>
     <a class="btn2 sm" href="?d={{ next_day }}" aria-label="Next day">Next &rarr;</a>
     {% if not is_today %}<a class="btn2 sm" href="{% url 'staff_today' %}">Back to today</a>{% endif %}
+    <a class="btn sm" href="{% url 'staff_checkin' %}">+ Check in a car</a>
   </div>
+</div>
+
+<div class="stats" style="margin-bottom:14px">
+  <a class="card stat" href="{% url 'staff_orders' %}" style="text-decoration:none;color:inherit"><div class="k">Cars in the shop</div><div class="v">{{ shop_cars }}</div><div class="s">open repair orders</div></a>
+  <a class="card stat" href="{% url 'staff_orders' %}" style="text-decoration:none;color:inherit"><div class="k">Waiting on customer</div><div class="v">{{ shop_waiting }}</div><div class="s">estimate lines not answered</div></a>
+  <a class="card stat" href="{% url 'staff_orders' %}" style="text-decoration:none;color:inherit"><div class="k">Ready for pickup</div><div class="v">{{ shop_ready }}</div><div class="s">not paid yet</div></a>
+  <a class="card stat" href="{% url 'staff_orders' %}" style="text-decoration:none;color:inherit"><div class="k">Unpaid</div><div class="v">{{ shop_unpaid }}</div><div class="s">{{ shop_unpaid_count }} ready to collect</div></a>
 </div>
 
 <div class="stats">

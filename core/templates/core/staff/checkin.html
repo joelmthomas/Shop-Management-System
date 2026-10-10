@@ -1,0 +1,86 @@
+{% extends "core/staff/base.html" %}
+{% block title %}Check in{% endblock %}
+{% block css %}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}}
+.panel{padding:22px 24px;margin-bottom:18px}
+.panel h2{font-size:24px;margin:0 0 16px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.fields .wide{grid-column:1 / -1}
+@media (max-width:640px){.fields{grid-template-columns:minmax(0,1fr)}}
+.trio{display:grid;grid-template-columns:110px minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:640px){.trio{grid-template-columns:minmax(0,1fr)}}
+label.lbl{display:block;font-weight:600;font-size:15px;margin-bottom:6px}
+.inp{width:100%;min-height:48px;padding:0 14px;border:1.5px solid #b9b3a3;border-radius:8px;font:400 17px 'Barlow',sans-serif;color:var(--ink);background:#fffdf8}
+textarea.inp{padding:12px 14px;min-height:110px}
+.err{color:#8a1c1c;font-size:15px;margin:6px 0 0;font-weight:500}
+.errbox{background:#f3d3d0;color:#8a1c1c;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-weight:500}
+.hint{color:var(--muted);font-size:14px;margin:6px 0 0}
+.consent{display:flex;gap:12px;align-items:flex-start;margin-top:16px;font-size:16px}
+.consent input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--red)}
+.note{background:#f3eee0;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:16px}
+.side-card{padding:20px 22px}
+.side-card h2{font-size:22px;margin:0 0 12px}
+.side-card dl{display:grid;grid-template-columns:70px 1fr;gap:8px 10px;margin:0;font-size:16px}
+.side-card dt{color:var(--muted)}
+.side-card dd{margin:0;font-weight:600}
+{% endblock %}
+{% block content %}
+<div class="top">
+  <h1>Check in{% if appt %}: {{ appt.name }}{% endif %}</h1>
+  <a class="btn2 sm" href="{% url 'staff_today' %}">Cancel</a>
+</div>
+
+{% if returning %}
+<div class="note"><b>{{ returning.first_name }} {{ returning.last_name }}</b> is already a customer with this phone number{% if returning_vehicles %}. On file: {{ returning_vehicles|join:", " }}{% endif %}. This visit will be added to them.</div>
+{% endif %}
+
+<form method="post" novalidate>
+{% csrf_token %}
+{% if form.non_field_errors %}<div class="errbox" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+<div class="layout">
+<div>
+  <section class="card panel">
+    <h2>Customer</h2>
+    <div class="fields">
+      <div><label class="lbl" for="id_first_name">First name</label><input class="inp" id="id_first_name" name="first_name" value="{{ form.first_name.value|default_if_none:'' }}" autocomplete="off" required>{% for e in form.first_name.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_last_name">Last name</label><input class="inp" id="id_last_name" name="last_name" value="{{ form.last_name.value|default_if_none:'' }}" autocomplete="off" required>{% for e in form.last_name.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_phone">Mobile number</label><input class="inp" id="id_phone" name="phone" type="tel" inputmode="tel" value="{{ form.phone.value|default_if_none:'' }}" placeholder="(972) 555-0100" required>{% for e in form.phone.errors %}<p class="err">{{ e }}</p>{% endfor %}<p class="hint">If we already have this number, the visit is added to that customer.</p></div>
+      <div><label class="lbl" for="id_email">Email (optional)</label><input class="inp" id="id_email" name="email" type="email" value="{{ form.email.value|default_if_none:'' }}">{% for e in form.email.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    </div>
+    <label class="consent"><input type="checkbox" name="sms_ok" {% if form.sms_ok.value %}checked{% endif %}><span>Customer agreed to get texts about this visit (estimates, photos, updates). Leave unchecked if they only want calls.</span></label>
+  </section>
+
+  <section class="card panel">
+    <h2>Vehicle</h2>
+    <div class="trio">
+      <div><label class="lbl" for="id_year">Year</label><input class="inp" id="id_year" name="year" inputmode="numeric" maxlength="4" value="{{ form.year.value|default_if_none:'' }}">{% for e in form.year.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_make">Make</label><input class="inp" id="id_make" name="make" value="{{ form.make.value|default_if_none:'' }}">{% for e in form.make.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_model">Model</label><input class="inp" id="id_model" name="model" value="{{ form.model.value|default_if_none:'' }}">{% for e in form.model.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    </div>
+    <div class="fields" style="margin-top:16px">
+      <div class="wide"><label class="lbl" for="id_vin">VIN</label><input class="inp" id="id_vin" name="vin" maxlength="30" autocapitalize="characters" value="{{ form.vin.value|default_if_none:'' }}">{% for e in form.vin.errors %}<p class="err">{{ e }}</p>{% endfor %}<p class="hint">Year, make and model fill in from the VIN when you leave them blank.</p></div>
+      <div><label class="lbl" for="id_plate">License plate</label><input class="inp" id="id_plate" name="license_plate" value="{{ form.license_plate.value|default_if_none:'' }}" autocapitalize="characters">{% for e in form.license_plate.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+      <div><label class="lbl" for="id_mileage">Mileage in</label><input class="inp" id="id_mileage" name="mileage" inputmode="numeric" value="{{ form.mileage.value|default_if_none:'' }}">{% for e in form.mileage.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    </div>
+  </section>
+
+  <section class="card panel">
+    <h2>What is going on with the car?</h2>
+    <textarea class="inp" id="id_complaint" name="complaint" aria-label="Customer's concern" placeholder="Noise, warning light, when it started...">{{ form.complaint.value|default_if_none:'' }}</textarea>
+  </section>
+</div>
+
+<aside class="card side-card" aria-label="Visit">
+  <h2>{% if appt %}Booked visit{% else %}Walk-in{% endif %}</h2>
+  {% if appt %}
+  <dl><dt>When</dt><dd>{{ when }}</dd><dt>Service</dt><dd>{{ appt.get_service_display }}</dd><dt>Booked</dt><dd>online</dd></dl>
+  {% else %}
+  <p class="muted" style="margin:0">No appointment. This creates the customer, the vehicle and a new repair order.</p>
+  {% endif %}
+  <button class="btn" type="submit" style="width:100%;min-height:52px;font-size:18px;margin-top:20px">Check in and open repair order</button>
+  <p class="hint">You can add findings, photos and parts on the repair order next.</p>
+</aside>
+</div>
+</form>
+{% endblock %}

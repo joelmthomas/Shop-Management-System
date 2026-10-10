@@ -1,0 +1,65 @@
+{% extends "core/staff/base.html" %}
+{% block title %}Repair orders{% endblock %}
+{% block css %}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.tab{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:20px;border:1.5px solid var(--navy);color:var(--navy);text-decoration:none;font-weight:600;font-size:15px;background:var(--card)}
+.tab:hover{background:#e4e8e7}
+.tab.on{background:var(--navy);color:#fff}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:start}
+@media (max-width:1200px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.board{grid-template-columns:minmax(0,1fr)}}
+.col h2{font-size:20px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+.col h2 span{font:600 15px 'Barlow',sans-serif;color:var(--muted)}
+.ro{display:block;text-decoration:none;color:var(--ink);padding:14px 16px;margin-bottom:12px;border-left:5px solid var(--navy)}
+.ro:hover{border-color:var(--line);border-left-color:var(--red);background:#fffdf8}
+.ro .v{font-weight:700;font-size:17px}
+.ro .c{font-size:15px;color:var(--muted);margin-top:2px}
+.ro .q{font-size:15px;margin-top:8px;color:var(--ink)}
+.ro .foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 10px;margin-top:10px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ro .foot b{color:var(--ink);font-size:16px}
+.none{color:var(--muted);font-size:15px;padding:6px 2px}
+.list .ro{max-width:640px}
+{% endblock %}
+{% block content %}
+<div class="top">
+  <h1>Repair orders</h1>
+  <a class="btn sm" href="{% url 'staff_checkin' %}">+ Check in a car</a>
+</div>
+<nav class="tabs" aria-label="Filter">
+  <a class="tab {% if show == 'open' %}on{% endif %}" href="?show=open">In the shop ({{ open_count }})</a>
+  <a class="tab {% if show == 'paid' %}on{% endif %}" href="?show=paid">Paid</a>
+</nav>
+
+{% if show == 'open' %}
+<div class="board">
+  {% for col in columns %}
+  <section class="col" aria-label="{{ col.label }}">
+    <h2>{{ col.label }} <span>{{ col.cards|length }}</span></h2>
+    {% for r in col.cards %}
+    <a class="card ro" href="{{ r.url }}">
+      <div class="v">{{ r.vehicle }}</div>
+      <div class="c">{{ r.customer }} &middot; RO #{{ r.obj.pk }}</div>
+      {% if r.complaint %}<div class="q">{{ r.complaint }}</div>{% endif %}
+      <div class="foot">
+        <span>{% if r.pending %}<span class="chip c-wait">{{ r.pending }} waiting on customer</span>{% else %}In shop {{ r.age }}{% endif %}</span>
+        <b>{% if r.has_lines %}{{ r.total }}{% else %}no lines yet{% endif %}</b>
+      </div>
+    </a>
+    {% endfor %}
+    {% if not col.cards %}<div class="none">Nothing here.</div>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% else %}
+<div class="list">
+  {% for r in cards %}
+  <a class="card ro" href="{{ r.url }}">
+    <div class="v">{{ r.vehicle }}</div>
+    <div class="c">{{ r.customer }} &middot; RO #{{ r.obj.pk }}</div>
+    <div class="foot"><span>Opened {% if r.age == 'today' %}today{% else %}{{ r.age }} ago{% endif %}</span><b>{{ r.total }}</b></div>
+  </a>
+  {% endfor %}
+  {% if not cards %}<div class="none">No paid repair orders yet.</div>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

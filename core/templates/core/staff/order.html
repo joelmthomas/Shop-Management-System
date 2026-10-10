@@ -1,0 +1,195 @@
+{% extends "core/staff/base.html" %}
+{% block title %}RO #{{ ro.pk }}{% endblock %}
+{% block css %}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
+@media (max-width:1100px){.layout{grid-template-columns:minmax(0,1fr)}}
+.panel{padding:20px 22px;margin-bottom:18px}
+.panel h2{font-size:23px;margin:0 0 14px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.panel h2 small{font:500 15px 'Barlow',sans-serif;color:var(--muted)}
+.sub{font-size:15px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:90px 1fr;gap:6px 12px;margin:0;font-size:16px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;font-weight:600;word-break:break-word}
+label.lbl{display:block;font-weight:600;font-size:14px;margin-bottom:5px}
+.inp{width:100%;min-height:44px;padding:0 12px;border:1.5px solid #b9b3a3;border-radius:8px;font:400 16px 'Barlow',sans-serif;color:var(--ink);background:#fffdf8}
+textarea.inp{padding:10px 12px;min-height:90px}
+select.inp{padding-right:8px}
+.err{color:#8a1c1c;font-size:14px;margin:5px 0 0;font-weight:500}
+.errbox{background:#f3d3d0;color:#8a1c1c;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-weight:500}
+.lines{width:100%;border-collapse:collapse}
+.lines th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+.lines td{padding:12px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top;font-size:16px;font-variant-numeric:tabular-nums}
+.lines .r{text-align:right;white-space:nowrap}
+.lines tr.declined td.d,.lines tr.declined td.r{text-decoration:line-through;color:var(--muted)}
+.lines .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.acts form,.inline{margin:0;display:inline}
+.tiny{min-height:32px;padding:0 10px;font-size:13px}
+.table-wrap{overflow-x:auto}
+.mob{display:none}
+@media (max-width:640px){.lines .q,.lines .p{display:none}.mob{display:block;font-size:15px;color:var(--muted);margin-top:2px}}
+.addgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.addgrid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.addgrid .span2{grid-column:span 2}
+.addgrid .all{grid-column:1 / -1}
+@media (max-width:640px){.addgrid,.addgrid.two{grid-template-columns:minmax(0,1fr)}.addgrid .span2,.addgrid .all{grid-column:auto}}
+.tot{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:17px;font-variant-numeric:tabular-nums;margin:0}
+.tot dd{margin:0;text-align:right;font-weight:600}
+.tot .big{font-size:22px;font-weight:700;border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.shot{background:#f3eee0;border-radius:10px;overflow:hidden;font-size:13px}
+.shot img,.shot video{display:block;width:100%;height:120px;object-fit:cover;background:#ddd}
+.shot .cap{padding:6px 8px;color:var(--ink)}
+.shot .cap span{display:block;color:var(--muted)}
+.shot form{padding:0 8px 8px}
+.copy{width:100%;min-height:40px;padding:0 10px;border:1.5px solid #b9b3a3;border-radius:8px;font:13px ui-monospace,Menlo,monospace;background:#fffdf8;color:var(--ink)}
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+{% endblock %}
+{% block content %}
+<div class="top">
+  <div class="headline" style="display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px">
+    <h1>{{ vehicle }}</h1>
+    <span class="chip c-{{ chip_class }}">{{ chip_label }}</span>
+    <span class="sub">RO #{{ ro.pk }} &middot; opened {{ started }}</span>
+  </div>
+  <div class="daynav" style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn2 sm" href="{% url 'staff_orders' %}">&larr; All repair orders</a>
+    {% if next_status %}
+    <form method="post" style="margin:0">{% csrf_token %}<input type="hidden" name="do" value="status"><input type="hidden" name="status" value="{{ next_status }}"><button class="btn sm" type="submit">{{ next_label }}</button></form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="layout">
+<div>
+
+  <section class="card panel" id="lines" aria-labelledby="h-lines">
+    <h2 id="h-lines">Estimate lines <small>{% if pending_count %}{{ pending_count }} waiting on the customer{% endif %}</small></h2>
+    {% if lines %}
+    <div class="table-wrap">
+    <table class="lines">
+      <thead><tr><th>What</th><th class="r q">Qty</th><th class="r p">Price</th><th class="r">Total</th></tr></thead>
+      <tbody>
+      {% for l in lines %}
+      <tr class="{% if l.declined %}declined{% endif %}">
+        <td class="d"><b>{{ l.name }}</b> <span class="sub">&middot; {{ l.kind }}</span>
+          <div class="mob">{{ l.qty }} &times; {{ l.price }}</div>
+          <div style="margin-top:4px"><span class="chip c-{{ l.chip_class }}">{{ l.chip_label }}</span></div>
+          <div class="acts">
+            {% if l.obj.approval != 'approved' %}<form method="post" action="#lines">{% csrf_token %}<input type="hidden" name="do" value="line"><input type="hidden" name="line_id" value="{{ l.obj.pk }}"><input type="hidden" name="action" value="approved"><button class="btn2 tiny" type="submit">Approved by phone</button></form>{% endif %}
+            {% if l.obj.approval != 'declined' %}<form method="post" action="#lines">{% csrf_token %}<input type="hidden" name="do" value="line"><input type="hidden" name="line_id" value="{{ l.obj.pk }}"><input type="hidden" name="action" value="declined"><button class="btn2 tiny" type="submit">Declined</button></form>{% endif %}
+            {% if l.obj.approval != 'pending' %}<form method="post" action="#lines">{% csrf_token %}<input type="hidden" name="do" value="line"><input type="hidden" name="line_id" value="{{ l.obj.pk }}"><input type="hidden" name="action" value="pending"><button class="btn2 tiny" type="submit">Back to waiting</button></form>{% endif %}
+            <form method="post" action="#lines">{% csrf_token %}<input type="hidden" name="do" value="line"><input type="hidden" name="line_id" value="{{ l.obj.pk }}"><input type="hidden" name="action" value="remove"><button class="btn2 tiny" type="submit">Remove</button></form>
+          </div>
+        </td>
+        <td class="r q">{{ l.qty }}</td><td class="r p">{{ l.price }}</td><td class="r"><b>{{ l.total }}</b></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="sub" style="margin:0 0 6px;font-size:16px">No lines yet. Add the first one below.</p>
+    {% endif %}
+
+    <form method="post" action="#lines" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+      {% csrf_token %}<input type="hidden" name="do" value="add_line">
+      {% if line_form.non_field_errors %}<div class="errbox" role="alert">{{ line_form.non_field_errors|join:" " }}</div>{% endif %}
+      <div class="addgrid">
+        <div><label class="lbl" for="f_kind">Type</label><select class="inp" id="f_kind" name="kind">{% for value, label in kinds %}<option value="{{ value }}" {% if line_form.kind.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div><label class="lbl" for="f_part">Part (optional)</label><input class="inp" id="f_part" name="part_sku" list="parts" autocomplete="off" placeholder="Search part number" value="{{ line_form.part_sku.value|default_if_none:'' }}">{% for e in line_form.part_sku.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+        <div><label class="lbl" for="f_qty">Qty</label><input class="inp" id="f_qty" name="quantity" inputmode="decimal" value="{{ line_form.quantity.value|default_if_none:'1' }}">{% for e in line_form.quantity.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+        <div class="span2"><label class="lbl" for="f_desc">Description</label><input class="inp" id="f_desc" name="description" placeholder="Replace front brake pads" value="{{ line_form.description.value|default_if_none:'' }}">{% for e in line_form.description.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+        <div><label class="lbl" for="f_price">Price each</label><input class="inp" id="f_price" name="unit_price" inputmode="decimal" placeholder="0.00" value="{{ line_form.unit_price.value|default_if_none:'' }}">{% for e in line_form.unit_price.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+        <div class="all"><button class="btn" type="submit" style="min-height:44px">Add line</button></div>
+      </div>
+      <p class="sub" style="margin:8px 0 0">Picking a part fills in the name and price and takes it out of stock when the job is marked complete.</p>
+      <datalist id="parts">{% for p in parts %}<option value="{{ p.sku }}">{{ p.label }}</option>{% endfor %}</datalist>
+    </form>
+  </section>
+
+  <section class="card panel" id="photos" aria-labelledby="h-photos">
+    <h2 id="h-photos">Photos and video</h2>
+    {% if files %}
+    <div class="gallery">
+      {% for f in files %}
+      <div class="shot">
+        {% if f.is_video %}<video src="{{ f.url }}" controls preload="metadata"></video>{% else %}<a href="{{ f.url }}" target="_blank" rel="noopener"><img src="{{ f.url }}" alt="{{ f.caption }}" loading="lazy"></a>{% endif %}
+        <div class="cap">{% if f.caption %}{{ f.caption }}{% else %}No caption{% endif %}{% if f.about %}<span>For: {{ f.about }}</span>{% endif %}</div>
+        <form method="post" action="#photos">{% csrf_token %}<input type="hidden" name="do" value="delete_photo"><input type="hidden" name="att_id" value="{{ f.obj.pk }}"><button class="btn2 tiny" type="submit">Remove</button></form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="sub" style="margin:0 0 14px;font-size:16px">Nothing uploaded yet.</p>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data" action="#photos" style="padding-top:14px;border-top:1px solid var(--line)">
+      {% csrf_token %}<input type="hidden" name="do" value="upload">
+      <div class="addgrid two">
+        <div class="all"><label class="lbl" for="f_files">Photos or video</label><input class="inp" style="padding-top:9px" id="f_files" name="files" type="file" accept="image/*,video/*,.heic,.heif" multiple></div>
+        <div><label class="lbl" for="f_cap">Caption</label><input class="inp" id="f_cap" name="caption" maxlength="200" placeholder="Front pads worn to metal"></div>
+        <div><label class="lbl" for="f_for">Goes with</label><select class="inp" id="f_for" name="line_item"><option value="">General photos of the car</option>{% for c in line_choices %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+        <div class="all"><button class="btn" type="submit" style="min-height:44px">Upload</button></div>
+      </div>
+      <p class="sub" style="margin:8px 0 0">Photos tied to a line show up under that line on the customer's estimate.</p>
+    </form>
+  </section>
+
+</div>
+
+<aside>
+  <section class="card panel" aria-labelledby="h-cust">
+    <h2 id="h-cust">Customer</h2>
+    <dl class="facts">
+      <dt>Name</dt><dd>{{ customer_name }}</dd>
+      <dt>Phone</dt><dd><a href="tel:{{ customer.phone }}">{{ customer_phone }}</a></dd>
+      <dt>Texts</dt><dd>{% if texting_ok %}OK to text{% else %}Do not text{% endif %}</dd>
+      <dt>Vehicle</dt><dd>{{ vehicle }}</dd>
+      {% if v.vin %}<dt>VIN</dt><dd style="font-size:14px">{{ v.vin }}</dd>{% endif %}
+      {% if v.license_plate %}<dt>Plate</dt><dd>{{ v.license_plate }}</dd>{% endif %}
+      {% if v.mileage %}<dt>Miles</dt><dd>{{ v.mileage }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  <section class="card panel" aria-labelledby="h-tot">
+    <h2 id="h-tot">Totals</h2>
+    <dl class="tot">
+      <dt>Subtotal</dt><dd>{{ subtotal }}</dd>
+      <dt>Tax ({{ tax_rate }}%)</dt><dd>{{ tax }}</dd>
+      <dt class="big">Total</dt><dd class="big">{{ total }}</dd>
+    </dl>
+    <p class="sub" style="margin:10px 0 0">Declined lines are not counted.</p>
+  </section>
+
+  <section class="card panel" aria-labelledby="h-est">
+    <h2 id="h-est">Customer estimate</h2>
+    <p class="sub" style="margin:0 0 10px">The customer sees photos and approves or declines each line from this link.</p>
+    <input class="copy" id="est" readonly value="{{ estimate_url }}" onclick="this.select()" aria-label="Estimate link">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <a class="btn2 sm" href="{{ estimate_url }}" target="_blank" rel="noopener">Preview</a>
+      <button class="btn2 sm" type="button" disabled title="Turns on after text messaging is approved">Text it (soon)</button>
+    </div>
+  </section>
+
+  <section class="card panel" aria-labelledby="h-det">
+    <h2 id="h-det">Details</h2>
+    <form method="post">
+      {% csrf_token %}<input type="hidden" name="do" value="details">
+      <label class="lbl" for="d_complaint">Customer's concern</label>
+      <textarea class="inp" id="d_complaint" name="complaint">{{ ro.complaint }}</textarea>
+      <label class="lbl" for="d_tax" style="margin-top:12px">Sales tax %</label>
+      <input class="inp" id="d_tax" name="tax_rate" inputmode="decimal" value="{{ tax_rate }}">
+      <button class="btn2 sm" type="submit" style="margin-top:12px">Save</button>
+    </form>
+    <form method="post" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+      {% csrf_token %}<input type="hidden" name="do" value="status">
+      <label class="lbl" for="d_status">Status</label>
+      <div style="display:flex;gap:8px">
+        <select class="inp" id="d_status" name="status">{% for s in statuses %}<option value="{{ s.value }}" {% if s.value == ro.status %}selected{% endif %}>{{ s.label }}</option>{% endfor %}</select>
+        <button class="btn2 sm" type="submit" style="min-height:44px">Set</button>
+      </div>
+      <p class="sub" style="margin:8px 0 0">Marking complete takes parts out of inventory, once.</p>
+    </form>
+  </section>
+</aside>
+</div>
+{% endblock %}

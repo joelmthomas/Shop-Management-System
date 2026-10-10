@@ -340,8 +340,11 @@ class Appointment(models.Model):
     sms_consent = models.BooleanField("OK to text", default=False)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=REQUESTED)
     internal_notes = models.TextField(blank=True)
+    repair_order = models.ForeignKey(
+        "RepairOrder", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="appointments",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-
     class Meta:
         ordering = ["date", "time"]
 

@@ -7,6 +7,7 @@ from core import views
 from core import site_views
 from core import admin_views
 
+
 urlpatterns = [
     path("", site_views.home, name="home"),
     path("book/", site_views.book, name="book"),
@@ -15,6 +16,10 @@ urlpatterns = [
     path("staff/", admin_views.today, name="staff_today"),
     path("staff/appointments/", admin_views.appointments, name="staff_appointments"),
     path("staff/appointments/<int:pk>/<str:action>/", admin_views.appointment_action, name="staff_appt_action"),
+    path("staff/checkin/", admin_views.checkin, name="staff_checkin"),
+    path("staff/checkin/<int:appt_id>/", admin_views.checkin, name="staff_checkin_appt"),
+    path("staff/orders/", admin_views.orders, name="staff_orders"),
+    path("staff/orders/<int:pk>/", admin_views.order, name="staff_order"),
     path("admin/", admin.site.urls),
     path("sms/incoming/", views.twilio_incoming),
     path("e/<str:token>/", views.estimate, name="estimate"),

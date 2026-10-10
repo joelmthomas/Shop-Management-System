@@ -1,5 +1,6 @@
 {% if v.can.confirm %}<form method="post" action="{% url 'staff_appt_action' v.obj.pk 'confirm' %}">{% csrf_token %}{% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}<button class="btn sm" type="submit">Confirm</button></form>{% endif %}
-{% if v.can.arrived %}<form method="post" action="{% url 'staff_appt_action' v.obj.pk 'arrived' %}">{% csrf_token %}{% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}<button class="btn2 sm" type="submit">Arrived</button></form>{% endif %}
+{% if v.can.checkin %}<a class="btn sm" href="{% url 'staff_checkin_appt' v.obj.pk %}">Check in</a>{% endif %}
+{% if v.ro_link %}<a class="btn2 sm" href="{{ v.ro_link }}">Open repair order</a>{% endif %}
 {% if v.can.no_show %}<form method="post" action="{% url 'staff_appt_action' v.obj.pk 'no_show' %}">{% csrf_token %}{% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}<button class="btn2 sm" type="submit">No-show</button></form>{% endif %}
 {% if v.can.cancel %}<form method="post" action="{% url 'staff_appt_action' v.obj.pk 'cancel' %}">{% csrf_token %}{% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}<button class="btn2 sm" type="submit">Cancel</button></form>{% endif %}
 {% if v.can.reopen %}<form method="post" action="{% url 'staff_appt_action' v.obj.pk 'reopen' %}">{% csrf_token %}{% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}<button class="btn2 sm" type="submit">Undo</button></form>{% endif %}
