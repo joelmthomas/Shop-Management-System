@@ -1,0 +1,86 @@
+{% extends "core/staff/base.html" %}
+{% block title %}{{ day_title }}{% endblock %}
+{% block css %}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:18px 20px}
+.stat .k{font-size:14px;font-weight:600;color:var(--muted)}
+.stat .v{font-family:'Barlow',system-ui,sans-serif;font-weight:600;font-variant-numeric:tabular-nums;font-size:38px;line-height:1.1;margin-top:4px}
+.stat .s{font-size:14px;color:var(--muted);margin-top:2px}
+.cols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
+@media (max-width:1100px){.cols{grid-template-columns:minmax(0,1fr)}}
+.card h2{font-size:22px;margin:0;padding:16px 20px;border-bottom:1px solid var(--line)}
+.headline{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.headline .date{font-size:22px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.daynav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.visit{display:grid;grid-template-columns:100px minmax(0,1fr);gap:6px 16px;padding:16px 20px;border-bottom:1px solid var(--line-soft);align-items:start}
+.visit:last-child{border-bottom:0}
+@media (max-width:640px){.visit{grid-template-columns:minmax(0,1fr)}.visit .acts{grid-column:1}}
+.visit .t{font-weight:700;font-size:18px;white-space:nowrap}
+.visit .who{font-weight:600;font-size:17px}
+.visit .sub{font-size:15px;color:var(--muted)}
+.visit .note{font-size:15px;margin-top:6px;background:#f3eee0;border-radius:8px;padding:8px 10px}
+.visit .acts{display:flex;flex-wrap:wrap;gap:8px;grid-column:2;margin-top:8px}
+.acts form{margin:0}
+.empty{padding:28px 20px;color:var(--muted);font-size:17px}
+.need{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line-soft)}
+.need:last-child{border-bottom:0}
+.need b{font-size:16px}
+.need .sub{font-size:14px;color:var(--muted)}
+{% endblock %}
+{% block content %}
+<div class="top">
+  <div class="headline"><h1>{{ day_title }}</h1><span class="date">{{ day_long }}</span></div>
+  <div class="daynav">
+    <a class="btn2 sm" href="?d={{ prev_day }}" aria-label="Previous day">&larr; Prev</a>
+    <a class="btn2 sm" href="?d={{ next_day }}" aria-label="Next day">Next &rarr;</a>
+    {% if not is_today %}<a class="btn2 sm" href="{% url 'staff_today' %}">Back to today</a>{% endif %}
+  </div>
+</div>
+
+<div class="stats">
+  <div class="card stat"><div class="k">Visits</div><div class="v">{{ stat_visits }}</div><div class="s">on this day, not cancelled</div></div>
+  <div class="card stat"><div class="k">Arrived</div><div class="v">{{ stat_arrived }}</div><div class="s">on this day</div></div>
+  <div class="card stat"><div class="k">Need confirming</div><div class="v">{{ stat_confirm }}</div><div class="s">from today forward</div></div>
+  <div class="card stat"><div class="k">Booked tomorrow</div><div class="v">{{ stat_tomorrow }}</div><div class="s">not counting cancelled</div></div>
+</div>
+
+<div class="cols">
+  <section class="card" aria-labelledby="h-visits">
+    <h2 id="h-visits">Appointments</h2>
+    {% if visits %}
+      {% for v in visits %}
+      <div class="visit">
+        <div class="t">{{ v.time }}</div>
+        <div>
+          <div class="who">{{ v.obj.name }} <span class="chip c-{{ v.chip_class }}" style="margin-left:6px">{{ v.chip_label }}</span></div>
+          <div class="sub">{{ v.service }} &middot; {{ v.obj.vehicle }}</div>
+          <div class="sub"><a href="tel:{{ v.obj.phone }}">{{ v.phone }}</a> &middot; {% if v.texting_ok %}OK to text{% else %}no texts, call only{% endif %}</div>
+          {% if v.obj.vin %}<div class="sub">VIN {{ v.obj.vin }}</div>{% endif %}
+          {% if v.obj.notes %}<div class="note">{{ v.obj.notes }}</div>{% endif %}
+        </div>
+        <div class="acts">
+          {% include "core/staff/_actions.html" %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">Nothing booked for this day.</div>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="h-need">
+    <h2 id="h-need" style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">Needs confirming <a href="{% url 'staff_appointments' %}?show=needs" style="font:600 15px 'Barlow',sans-serif">See all</a></h2>
+    {% if to_confirm %}
+      {% for n in to_confirm %}
+      <div class="need">
+        <div><b>{{ n.obj.name }}</b><div class="sub">{{ n.service }} &middot; {{ n.when }}</div><div class="sub"><a href="tel:{{ n.obj.phone }}">{{ n.phone }}</a></div></div>
+        <a class="btn2 sm" href="{{ n.link }}">Open day</a>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">All caught up.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

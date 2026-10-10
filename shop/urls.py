@@ -5,12 +5,16 @@ from django.urls import path
 
 from core import views
 from core import site_views
+from core import admin_views
 
 urlpatterns = [
     path("", site_views.home, name="home"),
     path("book/", site_views.book, name="book"),
     path("book/slots/", site_views.book_slots, name="book_slots"),
     path("book/thanks/", site_views.book_thanks, name="book_thanks"),
+    path("staff/", admin_views.today, name="staff_today"),
+    path("staff/appointments/", admin_views.appointments, name="staff_appointments"),
+    path("staff/appointments/<int:pk>/<str:action>/", admin_views.appointment_action, name="staff_appt_action"),
     path("admin/", admin.site.urls),
     path("sms/incoming/", views.twilio_incoming),
     path("e/<str:token>/", views.estimate, name="estimate"),

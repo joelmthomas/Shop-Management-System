@@ -1,0 +1,69 @@
+{% extends "core/staff/base.html" %}
+{% block title %}Appointments{% endblock %}
+{% block css %}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.tab{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:20px;border:1.5px solid var(--navy);color:var(--navy);text-decoration:none;font-weight:600;font-size:15px;background:var(--card)}
+.tab:hover{background:#e4e8e7}
+.tab.on{background:var(--navy);color:#fff}
+.search{display:flex;gap:8px;flex-wrap:wrap}
+.search input[type=search]{min-height:44px;padding:0 14px;border:1.5px solid #b9b3a3;border-radius:8px;font:400 16px 'Barlow',sans-serif;background:#fffdf8;color:var(--ink);width:260px;max-width:100%}
+.item{display:grid;grid-template-columns:130px minmax(0,1fr);gap:6px 16px;padding:16px 20px;border-bottom:1px solid var(--line-soft);align-items:start}
+.item:last-child{border-bottom:0}
+@media (max-width:640px){.item{grid-template-columns:minmax(0,1fr)}}
+.item .when{font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+.item .when a{color:var(--ink);text-decoration:none}
+.item .when a:hover{color:var(--red);text-decoration:underline}
+.item .when .tm{display:block;font-weight:600;font-size:15px;color:var(--muted)}
+.item .who{font-weight:600;font-size:17px}
+.item .sub{font-size:15px;color:var(--muted)}
+.item .note{font-size:15px;margin-top:6px;background:#f3eee0;border-radius:8px;padding:8px 10px}
+.item .acts{display:flex;flex-wrap:wrap;gap:8px;grid-column:2;margin-top:8px}
+@media (max-width:640px){.item .acts{grid-column:1}}
+.acts form{margin:0}
+.empty{padding:28px 20px;color:var(--muted);font-size:17px}
+.pager{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px}
+{% endblock %}
+{% block content %}
+<div class="top">
+  <h1>Appointments</h1>
+  <form class="search" method="get" role="search">
+    <input type="hidden" name="show" value="{{ show }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search name, phone or car" aria-label="Search appointments">
+    <button class="btn sm" type="submit">Search</button>
+    {% if q %}<a class="btn2 sm" href="?show={{ show }}">Clear</a>{% endif %}
+  </form>
+</div>
+
+<nav class="tabs" aria-label="Filter appointments">
+  {% for t in tabs %}<a class="tab {% if t.key == show %}on{% endif %}" href="{{ t.link }}">{{ t.label }}</a>{% endfor %}
+</nav>
+
+<section class="card">
+  {% if rows %}
+    {% for v in rows %}
+    <div class="item">
+      <div class="when"><a href="{{ v.day_link }}">{{ v.day }}</a><span class="tm">{{ v.time }}</span></div>
+      <div>
+        <div class="who">{{ v.obj.name }} <span class="chip c-{{ v.chip_class }}" style="margin-left:6px">{{ v.chip_label }}</span></div>
+        <div class="sub">{{ v.service }} &middot; {{ v.obj.vehicle }}</div>
+        <div class="sub"><a href="tel:{{ v.obj.phone }}">{{ v.phone }}</a> &middot; {% if v.texting_ok %}OK to text{% else %}no texts, call only{% endif %}</div>
+        {% if v.obj.notes %}<div class="note">{{ v.obj.notes }}</div>{% endif %}
+      </div>
+      <div class="acts">
+        {% include "core/staff/_actions.html" %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty">{% if q %}No appointments match &ldquo;{{ q }}&rdquo;.{% else %}Nothing here.{% endif %}</div>
+  {% endif %}
+</section>
+
+{% if pg.paginator.num_pages > 1 %}
+<div class="pager">
+  {% if pg.has_previous %}<a class="btn2 sm" href="{{ pager_base }}{{ pg.previous_page_number }}">&larr; Previous</a>{% else %}<span></span>{% endif %}
+  <span class="muted">Page {{ pg.number }} of {{ pg.paginator.num_pages }}</span>
+  {% if pg.has_next %}<a class="btn2 sm" href="{{ pager_base }}{{ pg.next_page_number }}">Next &rarr;</a>{% else %}<span></span>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

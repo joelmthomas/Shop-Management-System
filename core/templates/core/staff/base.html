@@ -1,0 +1,76 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}Staff{% endblock %} | Philips Autos</title>
+<link rel="icon" href="{% static 'core/emblem.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d2530;--red:#b3121e;--red-dark:#8c0e17;--paper:#efe9db;--card:#fbf8f1;--line:#d8d2c3;--line-soft:#e8e3d6;--muted:#5a6472;--navy:#22344a;--navy-deep:#1b2431;--gold:#e3b341}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Barlow',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.4}
+a{color:var(--red)}
+h1,h2,.serif{font-family:'Marcellus',Georgia,serif;font-weight:400;letter-spacing:.02em}
+.btn,.btn2{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:8px;font:600 16px 'Barlow',sans-serif;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn{background:var(--red);color:#fff;border:0}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn2{background:var(--card);color:var(--ink);border:1.5px solid var(--navy)}
+.btn2:hover{background:var(--navy);color:#fff}
+.sm{min-height:36px;padding:0 14px;font-size:14px}
+.btn:focus-visible,.btn2:focus-visible,a:focus-visible{outline:3px solid #1a56db;outline-offset:2px}
+.shell{display:flex;min-height:100vh}
+.side{width:236px;flex:none;background:var(--navy-deep);color:#fff;padding:20px 14px;display:flex;flex-direction:column;gap:4px}
+.side .logo{background:var(--card);border-radius:10px;padding:10px;margin:0 0 18px;text-align:center;text-decoration:none;display:block}
+.side .logo img{width:120px;height:auto;display:block;margin:0 auto}
+.side .logo span{display:block;font-family:'Marcellus',Georgia,serif;font-size:17px;color:var(--navy);letter-spacing:.04em;margin-top:2px}
+.nav{display:flex;align-items:center;min-height:44px;padding:0 14px;border-radius:8px;color:#c9d1dc;font-weight:500;font-size:16px;text-decoration:none;background:none;border:0;font-family:inherit;cursor:pointer;width:100%;text-align:left}
+.nav:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav.on{background:var(--red);color:#fff}
+.side .foot{margin-top:auto;padding:14px 0 0;font-size:14px;color:#9aa6bb;border-top:1px solid rgba(255,255,255,.12)}
+.main{flex:1;min-width:0;padding:28px 36px 48px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;margin-bottom:22px}
+.top h1{font-size:34px;margin:0;line-height:1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+.muted{color:var(--muted)}
+.chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;font-size:13px;font-weight:600;white-space:nowrap}
+.c-wait{background:#f8e7b4;color:#6b4a00}.c-ok{background:#d3ecd9;color:#12602d}.c-no{background:#f3d3d0;color:#8a1c1c}.c-info{background:#d9e4f2;color:#173f6e}
+.msgs{list-style:none;margin:0 0 18px;padding:0}
+.msgs li{border-radius:10px;padding:12px 16px;font-weight:500;margin-bottom:8px}
+.msgs .success{background:#d3ecd9;color:#12602d}.msgs .error{background:#f3d3d0;color:#8a1c1c}.msgs .info{background:#d9e4f2;color:#173f6e}
+@media (max-width:900px){
+  .shell{flex-direction:column}
+  .side{width:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 12px;gap:4px 6px}
+  .side .logo{margin:0 8px 0 0;padding:4px 8px;display:flex;align-items:center;gap:8px}
+  .side .logo img{width:36px;margin:0}
+  .side .logo span{margin:0;font-size:15px}
+  .side .foot{display:none}
+  .nav{width:auto;min-height:40px;padding:0 12px}
+  .main{padding:20px 16px 40px}
+}
+{% block css %}{% endblock %}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side" aria-label="Staff menu">
+    <a class="logo" href="{% url 'staff_today' %}"><img src="{% static 'core/emblem.png' %}" alt=""><span>PHILIPS AUTOS</span></a>
+    <a class="nav {% if page == 'today' %}on{% endif %}" href="{% url 'staff_today' %}">Today</a>
+    <a class="nav {% if page == 'appointments' %}on{% endif %}" href="{% url 'staff_appointments' %}">Appointments</a>
+    <a class="nav" href="{% url 'home' %}" target="_blank" rel="noopener">View website</a>
+    <div class="foot">
+      Signed in as {{ user.get_username }}
+      <div style="margin-top:6px"><a href="{% url 'admin:index' %}" style="color:#9aa6bb;font-size:13px">Database admin</a></div>
+      <form method="post" action="{% url 'admin:logout' %}" style="margin-top:8px">{% csrf_token %}<button class="nav" type="submit" style="padding:0;min-height:32px;color:#fff;text-decoration:underline;background:none">Sign out</button></form>
+    </div>
+  </aside>
+  <main class="main">
+    {% if messages %}<ul class="msgs" role="status">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>
