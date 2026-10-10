@@ -78,5 +78,6 @@ def role_required(*allowed):
 
 
 staff_screen = role_required(STAFF)
+staff_or_tech = role_required(STAFF, TECH)  # shared helpers such as the VIN lookup
 tech_screen = role_required(TECH)
 owner_screen = role_required()

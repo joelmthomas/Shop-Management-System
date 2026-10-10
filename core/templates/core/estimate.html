@@ -1,44 +1,90 @@
-<!doctype html>
+{% load static %}<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Estimate #{{ ro.pk }}</title>
-  <style>
-    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #f4f5f7; color: #1a1a1a; }
-    .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
-    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border: 2px solid transparent; }
-    .card.missing { border-color: #b3261e; }
-    h1 { font-size: 1.3rem; margin: 0 0 4px; }
-    .muted { color: #666; font-size: .9rem; }
-    .item-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
-    .choices { display: flex; gap: 8px; margin-top: 10px; }
-    .choices label { position: relative; flex: 1; text-align: center; padding: 10px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; }
-    .choices input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
-    .choices input[value="approved"]:checked + span { color: #0a7a33; font-weight: 700; }
-    .choices label:has(input[value="approved"]:checked) { border-color: #0a7a33; background: #e8f6ed; }
-    .choices label:has(input[value="declined"]:checked) { border-color: #b3261e; background: #fbeae9; }
-    .totals div { display: flex; justify-content: space-between; padding: 3px 0; }
-    .grand { font-weight: 700; font-size: 1.1rem; border-top: 1px solid #ddd; margin-top: 6px; padding-top: 8px !important; }
-    button { width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; border: 0; border-radius: 10px; background: #1a56db; color: #fff; }
-    .error { background: #fbeae9; color: #b3261e; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
-    .done { background: #e8f6ed; color: #0a7a33; padding: 10px; border-radius: 8px; margin-bottom: 12px; }
-    .badge-approved { color: #0a7a33; font-weight: 600; }
-    .badge-declined { color: #b3261e; font-weight: 600; }
-    details.media-box { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-    details.media-box summary { cursor: pointer; color: #1a56db; font-weight: 600; list-style: none; }
-    details.media-box summary::-webkit-details-marker { display: none; }
-    details.media-box summary::before { content: "\25B8  "; }
-    details.media-box[open] summary::before { content: "\25BE  "; }
-    .media-box img, .media-box video { width: 100%; border-radius: 8px; margin-top: 8px; display: block; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Estimate #{{ ro.pk }} | Philips Autos</title>
+<link rel="icon" href="{% static 'core/emblem.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d2530;--red:#b3121e;--red-dark:#8c0e17;--paper:#efe9db;--card:#fbf8f1;--line:#d8d2c3;--line-soft:#e8e3d5;--muted:#5a6472;--navy:#22344a;--navy-deep:#1b2431;--green:#1f6b3a;--green-bg:#dcefe0}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Barlow',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.45;font-size:18px;min-height:100vh;display:flex;flex-direction:column}
+a{color:var(--red)}
+h1,h2{font-family:'Marcellus',Georgia,serif;font-weight:400}
+.check{height:20px;background:conic-gradient(var(--navy) 25%,var(--card) 0 50%,var(--navy) 0 75%,var(--card) 0) 0 0/20px 20px}
+header.site{background:var(--card)}
+header.site .in{max-width:680px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand img{height:48px;width:auto}
+.brand .name{font-family:'Marcellus',Georgia,serif;font-size:22px;letter-spacing:.04em;color:var(--navy);line-height:1}
+.call{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:2px solid var(--navy);border-radius:8px;color:var(--navy);font-weight:700;font-size:16px;text-decoration:none;white-space:nowrap}
+main{flex:1;width:100%;max-width:680px;margin:0 auto;padding:22px 16px 40px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+.card.missing{border-color:var(--red);background:#fdf3f1}
+.eyebrow{font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:30px;line-height:1.15;margin:4px 0 6px}
+.muted{color:var(--muted);font-size:16px}
+.complaint{margin:12px 0 0;padding:10px 12px;background:#f3eee0;border-radius:10px;font-size:17px}
+.how{margin:14px 0 0;font-size:17px;color:var(--ink)}
+.item-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.item-head .what{font-weight:700;font-size:19px}
+.item-head .amt{font-weight:700;font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kind{display:inline-block;font-weight:700;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);background:#dfe5ec;border-radius:20px;padding:2px 10px;margin-right:6px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.choices label{position:relative;display:flex;align-items:center;justify-content:center;min-height:56px;border:2px solid #b9b3a3;border-radius:10px;cursor:pointer;font-weight:700;font-size:18px;background:#fffdf8;color:var(--ink);text-align:center;padding:0 10px}
+.choices input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.choices label:has(input[value="approved"]:checked){border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.choices label:has(input[value="declined"]:checked){border-color:var(--red);background:#f8dcd9;color:var(--red-dark)}
+.choices label:has(input:focus-visible){outline:3px solid #1a56db;outline-offset:2px}
+.choices label:has(input:checked)::before{content:"\2713";margin-right:8px}
+.chip{display:inline-block;font-weight:700;font-size:14px;border-radius:20px;padding:3px 12px;margin-top:10px}
+.chip.approved{background:var(--green-bg);color:var(--green)}
+.chip.declined{background:#f8dcd9;color:var(--red-dark)}
+.chip.pending{background:#f3e4b8;color:#6b4f08}
+details.media-box{margin-top:12px;border-top:1px solid var(--line-soft);padding-top:10px}
+details.media-box summary{cursor:pointer;color:var(--navy);font-weight:700;font-size:16px;list-style:none;min-height:36px;display:flex;align-items:center}
+details.media-box summary::-webkit-details-marker{display:none}
+details.media-box summary::before{content:"\25B8";margin-right:8px;color:var(--red)}
+details.media-box[open] summary::before{content:"\25BE"}
+.media-box img,.media-box video{width:100%;border-radius:10px;margin-top:10px;display:block;background:#000}
+.totals div{display:flex;justify-content:space-between;padding:4px 0;font-variant-numeric:tabular-nums}
+.totals .grand{font-weight:700;font-size:22px;border-top:2px solid var(--line);margin-top:8px;padding-top:10px}
+.totals .grand span:last-child{font-size:26px}
+.banner{border-radius:12px;padding:14px 16px;margin-bottom:14px;font-weight:600;font-size:17px}
+.banner.ok{background:var(--green-bg);color:var(--green)}
+.banner.err{background:#f8dcd9;color:#8a1c1c}
+.banner.wait{background:#f3eee0;color:var(--ink);font-weight:500}
+.submit{display:flex;align-items:center;justify-content:center;width:100%;min-height:60px;border:0;border-radius:12px;background:var(--red);color:#fff;font:700 20px 'Barlow',sans-serif;cursor:pointer}
+.submit:hover{background:var(--red-dark)}
+.submit:focus-visible{outline:3px solid #1a56db;outline-offset:3px}
+.progress{text-align:center;color:var(--muted);font-size:16px;margin:0 0 10px}
+.fine{text-align:center;color:var(--muted);font-size:15px;margin:12px 0 0}
+footer.site{background:var(--navy-deep);color:#c9d1dc;padding:28px 16px;font-size:15px}
+footer.site .in{max-width:680px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px 24px}
+footer.site a{color:#fff}
+footer.site .name{font-family:'Marcellus',Georgia,serif;font-size:20px;letter-spacing:.04em;color:#fff;margin-bottom:4px}
+@media (max-width:420px){h1{font-size:26px}.brand .name{font-size:19px}.brand img{height:42px}}
+</style>
 </head>
 <body>
-<div class="wrap">
+<header class="site">
+  <div class="in">
+    <a class="brand" href="{% url 'home' %}"><img src="{% static 'core/emblem.png' %}" alt=""><span class="name">PHILIPS AUTOS</span></a>
+    <a class="call" href="tel:+19722857760">Call (972) 285-7760</a>
+  </div>
+  <div class="check" aria-hidden="true"></div>
+</header>
+
+<main>
   <div class="card">
-    <h1>Phillips Auto Care</h1>
-    <div class="muted">Estimate #{{ ro.pk }} &middot; {{ ro.vehicle }}</div>
-    {% if ro.complaint %}<p>{{ ro.complaint }}</p>{% endif %}
+    <div class="eyebrow">Estimate #{{ ro.pk }}</div>
+    <h1>{{ ro.vehicle }}</h1>
+    {% if ro.complaint %}<div class="complaint">{{ ro.complaint }}</div>{% endif %}
+    {% if can_respond %}<p class="how">Here is what we found. <b>Approve</b> the work you want us to do and <b>decline</b> the rest. We will not start anything until you answer.</p>{% endif %}
 
     {% if general_media %}
     <details class="media-box">
@@ -55,17 +101,18 @@
     {% endif %}
   </div>
 
-  {% if ro.responded_at %}<div class="done">Thank you! We received your response.</div>{% endif %}
+  {% if ro.responded_at %}<div class="banner ok">Thank you! We received your answers. We will be in touch about your car.</div>{% endif %}
+  {% if not items %}<div class="banner wait">We are still putting your estimate together. Please check back soon, or call us at (972) 285-7760.</div>{% endif %}
 
-  <form method="post" id="estimate-form">
+  <form method="post" id="estimate-form" novalidate>
     {% csrf_token %}
     {% for item in items %}
     <div class="card item-card">
       <div class="item-head">
-        <span>{{ item.description }}</span>
-        <span>${{ item.total|floatformat:2 }}</span>
+        <span class="what">{{ item.description }}</span>
+        <span class="amt">${{ item.total|floatformat:2 }}</span>
       </div>
-      <div class="muted">{{ item.get_kind_display }} &middot; {{ item.quantity }} x ${{ item.unit_price }}</div>
+      <div class="muted" style="margin-top:4px"><span class="kind">{{ item.get_kind_display }}</span>{{ item.quantity|floatformat:"-2" }} &times; ${{ item.unit_price|floatformat:2 }}</div>
 
       {% with media=item.attachments.all %}
       {% if media %}
@@ -84,59 +131,85 @@
       {% endwith %}
 
       {% if can_respond %}
-        <div class="choices">
+        <div class="choices" role="radiogroup" aria-label="Your choice for {{ item.description }}">
           <label><input type="radio" name="item_{{ item.id }}" value="approved"><span>Approve</span></label>
           <label><input type="radio" name="item_{{ item.id }}" value="declined"><span>Decline</span></label>
         </div>
       {% elif ro.responded_at %}
-        <div class="badge-{{ item.approval }}">{{ item.get_approval_display }}</div>
+        <div class="chip {{ item.approval }}">{{ item.get_approval_display }}</div>
       {% endif %}
     </div>
     {% endfor %}
 
+    {% if items %}
     <div class="card totals">
       <div><span>Subtotal</span><span>${{ ro.subtotal|floatformat:2 }}</span></div>
       <div><span>Tax ({{ ro.tax_rate }}%)</span><span>${{ ro.tax_amount|floatformat:2 }}</span></div>
       <div class="grand"><span>Total</span><span>${{ ro.total|floatformat:2 }}</span></div>
     </div>
+    {% endif %}
 
     {% if can_respond %}
-      <div id="error-banner" class="error" role="alert" {% if not error %}hidden{% endif %}>{{ error }}</div>
-      <button type="submit">Submit my choices</button>
+      <div id="error-banner" class="banner err" role="alert" {% if not error %}hidden{% endif %}>{{ error }}</div>
+      <p class="progress" id="progress" aria-live="polite"></p>
+      <button class="submit" type="submit">Submit my choices</button>
+      <p class="fine">Questions? Call us at <a href="tel:+19722857760">(972) 285-7760</a>.</p>
     {% endif %}
   </form>
-</div>
+</main>
+
+<footer class="site">
+  <div class="in">
+    <div>
+      <div class="name">PHILIPS AUTOS</div>
+      <div>211 N. Galloway Ave., Mesquite, TX 75149</div>
+      <div><a href="tel:+19722857760">(972) 285-7760</a> &middot; Mon&ndash;Fri 9&ndash;6, Sat 9&ndash;2</div>
+    </div>
+    <div style="align-self:flex-end">In God We Trust<br><a href="{% url 'privacy' %}">Privacy Policy</a></div>
+  </div>
+</footer>
 
 <script>
-  (function () {
-    var form = document.getElementById("estimate-form");
-    var banner = document.getElementById("error-banner");
-    if (!form || !banner) return;
+(function () {
+  var form = document.getElementById("estimate-form");
+  var banner = document.getElementById("error-banner");
+  var progress = document.getElementById("progress");
+  if (!form || !banner) return;
+  var cards = form.querySelectorAll(".item-card");
 
-    form.addEventListener("submit", function (e) {
-      var cards = form.querySelectorAll(".item-card");
-      var anyMissing = false;
-      cards.forEach(function (card) {
-        var radios = card.querySelectorAll("input[type=radio]");
-        if (!radios.length) return;
-        var answered = Array.prototype.some.call(radios, function (r) { return r.checked; });
-        card.classList.toggle("missing", !answered);
-        if (!answered) anyMissing = true;
-      });
-      if (anyMissing) {
-        e.preventDefault();
-        banner.textContent = "Please approve or decline every item before submitting. Items that still need a choice are outlined in red.";
-        banner.hidden = false;
-        banner.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
+  function answered(card) {
+    return Array.prototype.some.call(card.querySelectorAll("input[type=radio]"), function (r) { return r.checked; });
+  }
+  function update() {
+    var total = 0, done = 0;
+    cards.forEach(function (c) { if (c.querySelector("input[type=radio]")) { total++; if (answered(c)) done++; } });
+    if (progress && total) progress.textContent = done + " of " + total + " answered";
+  }
+  update();
 
-    form.addEventListener("change", function (e) {
-      if (e.target.type === "radio") {
-        e.target.closest(".item-card").classList.remove("missing");
-      }
+  form.addEventListener("submit", function (e) {
+    var anyMissing = false, first = null;
+    cards.forEach(function (card) {
+      if (!card.querySelector("input[type=radio]")) return;
+      var ok = answered(card);
+      card.classList.toggle("missing", !ok);
+      if (!ok) { anyMissing = true; if (!first) first = card; }
     });
-  })();
+    if (anyMissing) {
+      e.preventDefault();
+      banner.textContent = "Please approve or decline every item before submitting. Items that still need a choice are outlined in red.";
+      banner.hidden = false;
+      first.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+
+  form.addEventListener("change", function (e) {
+    if (e.target.type === "radio") {
+      e.target.closest(".item-card").classList.remove("missing");
+      update();
+    }
+  });
+})();
 </script>
 </body>
 </html>

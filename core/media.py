@@ -7,15 +7,10 @@ import io
 import os
 
 from django.core.files.base import ContentFile
-from PIL import Image, ImageOps
 
-try:  # lets Pillow read HEIC/HEIF
-    from pillow_heif import register_heif_opener
-
-    register_heif_opener()
-    HEIF_READY = True
-except ImportError:  # the app still runs; HEIC uploads are refused with a clear message
-    HEIF_READY = False
+# Pillow is imported only when a HEIC photo arrives, so a missing package can never
+# stop the whole site from starting.
+HEIF_READY = False
 
 HEIF_EXTENSIONS = (".heic", ".heif")
 
@@ -29,7 +24,17 @@ def prepare_upload(f):
     ext = os.path.splitext(f.name)[1].lower()
     if ext not in HEIF_EXTENSIONS:
         return f, None
+    global HEIF_READY
     try:
+        from PIL import Image, ImageOps
+
+        try:  # lets Pillow read HEIC/HEIF
+            from pillow_heif import register_heif_opener
+
+            register_heif_opener()
+            HEIF_READY = True
+        except ImportError:
+            HEIF_READY = False
         img = Image.open(f)
         img = ImageOps.exif_transpose(img)
         if img.mode != "RGB":
@@ -38,7 +43,7 @@ def prepare_upload(f):
         img.save(buf, "JPEG", quality=90, optimize=True)
     except Exception:
         if not HEIF_READY:
-            return None, "HEIC support is not installed on the server (pip install pillow-heif)"
+            return None, "HEIC support is not installed on the server (add pillow and pillow-heif to requirements.txt)"
         return None, "could not read this photo"
     base = os.path.splitext(os.path.basename(f.name))[0] or "photo"
     return ContentFile(buf.getvalue(), name=f"{base}.jpg"), None

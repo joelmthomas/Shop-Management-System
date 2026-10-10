@@ -1,7 +1,6 @@
 import os
 
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -10,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from twilio.request_validator import RequestValidator
 
+from .access import staff_or_tech, staff_screen
 from .models import Attachment, Customer, Message, RepairOrder, Vehicle
 from .vin import clean_vin, decode_vin
 
@@ -90,7 +90,7 @@ def estimate(request, token):
     })
 
 
-@staff_member_required
+@staff_screen
 def upload_media(request, pk):
     ro = get_object_or_404(RepairOrder, pk=pk)
 
@@ -125,7 +125,7 @@ def upload_media(request, pk):
     })
 
 
-@staff_member_required
+@staff_screen
 def scan_vin(request):
     if request.method == "POST":
         customer = get_object_or_404(Customer, pk=request.POST.get("customer"))
@@ -154,7 +154,7 @@ def scan_vin(request):
     })
 
 
-@staff_member_required
+@staff_or_tech
 def vin_lookup(request):
     vin = clean_vin(request.GET.get("vin", ""))
     info = decode_vin(vin) if vin else None

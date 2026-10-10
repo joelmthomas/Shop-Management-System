@@ -523,3 +523,44 @@ class UsersPageTests(TestCase):
         self.client.login(username="desk", password="pw")
         self.assertEqual(self.post(do="add", username="x", role=OWNER, password="Sturdy-Pass-4821", password2="Sturdy-Pass-4821").status_code, 403)
         self.assertFalse(self.User.objects.filter(username="x").exists())
+
+
+class EstimatePageTests(TestCase):
+    def setUp(self):
+        from .models import Customer, LineItem, RepairOrder, Vehicle
+        cust = Customer.objects.create(first_name="Jose", last_name="Alvarez", phone="+19725550143")
+        veh = Vehicle.objects.create(customer=cust, year=2014, make="Honda", model="Accord")
+        self.ro = RepairOrder.objects.create(vehicle=veh, complaint="Noise")
+        self.a = LineItem.objects.create(repair_order=self.ro, kind="labor", description="Brake job", quantity=1, unit_price=120)
+        self.b = LineItem.objects.create(repair_order=self.ro, kind="labor", description="Wiper blades", quantity=1, unit_price=20)
+        self.url = reverse("estimate", args=[self.ro.approval_token])
+
+    def test_customer_sees_branded_page_without_signing_in(self):
+        resp = self.client.get(self.url)
+        self.assertContains(resp, "PHILIPS AUTOS")
+        self.assertContains(resp, "Brake job")
+        self.assertContains(resp, "Submit my choices")
+
+    def test_every_line_must_be_answered(self):
+        resp = self.client.post(self.url, {f"item_{self.a.id}": "approved"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "approve or decline every item")
+        self.ro.refresh_from_db()
+        self.assertIsNone(self.ro.responded_at)
+
+    def test_answers_are_saved(self):
+        resp = self.client.post(self.url, {f"item_{self.a.id}": "approved", f"item_{self.b.id}": "declined"})
+        self.assertRedirects(resp, self.url, fetch_redirect_response=False)
+        self.a.refresh_from_db()
+        self.b.refresh_from_db()
+        self.ro.refresh_from_db()
+        self.assertEqual((self.a.approval, self.b.approval), ("approved", "declined"))
+        self.assertEqual(self.ro.status, "approved")
+        self.assertContains(self.client.get(self.url), "Thank you")
+
+    def test_tech_can_use_vin_lookup_but_signed_out_cannot(self):
+        User = get_user_model()
+        apply_role(User.objects.create_user("tech", password="pw"), TECH)
+        self.assertEqual(self.client.get(reverse("vin_lookup")).status_code, 302)
+        self.client.login(username="tech", password="pw")
+        self.assertEqual(self.client.get(reverse("vin_lookup") + "?vin=123").status_code, 200)
